@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_catalog_vendor_list" model="ir.ui.view">
+    <field name="name">catalog.vendor.list</field>
+    <field name="model">catalog.vendor</field>
+    <field name="arch" type="xml">
+      <list string="Vendors">
+        <field name="store_name"/>
+        <field name="partner_id"/>
+        <field name="user_id"/>
+        <field name="status"/>
+        <field name="phone"/>
+        <field name="email"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_catalog_vendor_form" model="ir.ui.view">
+    <field name="name">catalog.vendor.form</field>
+    <field name="model">catalog.vendor</field>
+    <field name="arch" type="xml">
+      <form string="Vendor">
+        <sheet>
+          <group>
+            <field name="store_name"/>
+            <field name="status"/>
+          </group>
+          <group>
+            <field name="partner_id"/>
+            <field name="user_id"/>
+          </group>
+          <group>
+            <field name="phone"/>
+            <field name="email"/>
+          </group>
+          <group>
+            <field name="notes"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+</odoo>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="model_catalog_review" model="ir.model">
+    <field name="name">Catalog Review</field>
+    <field name="model">catalog.review</field>
+  </record>
+</odoo>

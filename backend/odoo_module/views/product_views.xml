@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Mostrar Catalogo en el formulario de producto -->
+    <record id="view_product_template_form_catalogix" model="ir.ui.view">
+        <field name="name">product.template.form.catalogix</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="catalog_id"/>
+            </xpath>
+            <xpath expr="//field[@name='catalog_id']" position="after">
+                <field name="qty_available" readonly="1" groups="stock.group_stock_user"/>
+                <field name="catalog_stock_qty"/>
+                <field name="min_stock"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Mostrar Catalogo en la lista de productos -->
+    <record id="view_product_template_tree_catalogix" model="ir.ui.view">
+        <field name="name">product.template.tree.catalogix</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='list_price']" position="after">
+                <field name="qty_available" optional="show" groups="stock.group_stock_user"/>
+                <field name="catalog_stock_qty" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="catalog_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

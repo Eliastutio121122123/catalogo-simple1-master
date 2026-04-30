@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Promotion views -->
+    <record id="view_catalog_promotion_list" model="ir.ui.view">
+        <field name="name">catalog.promotion.list</field>
+        <field name="model">catalog.promotion</field>
+        <field name="arch" type="xml">
+            <list string="Promociones">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="promotion_type"/>
+                <field name="value"/>
+                <field name="status"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="vendor_partner_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_promotion_form" model="ir.ui.view">
+        <field name="name">catalog.promotion.form</field>
+        <field name="model">catalog.promotion</field>
+        <field name="arch" type="xml">
+            <form string="Promocion">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="promotion_type"/>
+                        <field name="value"/>
+                        <field name="status"/>
+                        <field name="active"/>
+                    </group>
+                    <group>
+                        <field name="min_order_amount"/>
+                        <field name="max_discount_amount"/>
+                        <field name="applies_to"/>
+                        <field name="usage_limit"/>
+                        <field name="used_count"/>
+                    </group>
+                    <group>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
+                        <field name="vendor_partner_id"/>
+                    </group>
+                    <field name="description"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_catalogix_promotions" model="ir.actions.act_window">
+        <field name="name">Promociones</field>
+        <field name="res_model">catalog.promotion</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_catalogix_promotions"
+              name="Promociones"
+              parent="menu_catalogix_root"
+              action="action_catalogix_promotions"
+              sequence="45"/>
+</odoo>

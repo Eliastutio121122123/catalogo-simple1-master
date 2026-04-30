@@ -1,0 +1,39 @@
+<odoo>
+    <record id="view_catalog_notification_list" model="ir.ui.view">
+        <field name="name">catalog.notification.list</field>
+        <field name="model">catalog.notification</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="vendor_partner_id"/>
+                <field name="title"/>
+                <field name="notif_type"/>
+                <field name="is_read"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_notification_form" model="ir.ui.view">
+        <field name="name">catalog.notification.form</field>
+        <field name="model">catalog.notification</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="vendor_partner_id"/>
+                        <field name="title"/>
+                        <field name="notif_type"/>
+                        <field name="is_read"/>
+                        <field name="body"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_catalog_notification" model="ir.actions.act_window">
+        <field name="name">Notifications</field>
+        <field name="res_model">catalog.notification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

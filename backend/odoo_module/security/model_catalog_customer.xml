@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="model_catalog_customer" model="ir.model">
+    <field name="name">Catalog Customer</field>
+    <field name="model">catalog.customer</field>
+  </record>
+</odoo>

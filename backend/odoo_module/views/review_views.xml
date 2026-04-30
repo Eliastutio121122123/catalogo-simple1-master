@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Review views -->
+    <record id="view_catalog_review_list" model="ir.ui.view">
+        <field name="name">catalog.review.list</field>
+        <field name="model">catalog.review</field>
+        <field name="arch" type="xml">
+            <list string="Reseñas">
+                <field name="product_tmpl_id"/>
+                <field name="partner_id"/>
+                <field name="rating"/>
+                <field name="state"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_review_form" model="ir.ui.view">
+        <field name="name">catalog.review.form</field>
+        <field name="model">catalog.review</field>
+        <field name="arch" type="xml">
+            <form string="Reseña">
+                <sheet>
+                    <group>
+                        <field name="product_tmpl_id"/>
+                        <field name="partner_id"/>
+                        <field name="user_id"/>
+                        <field name="rating"/>
+                        <field name="state"/>
+                    </group>
+                    <group>
+                        <field name="title"/>
+                    </group>
+                    <field name="body"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_catalogix_reviews" model="ir.actions.act_window">
+        <field name="name">Reseñas</field>
+        <field name="res_model">catalog.review</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_catalogix_reviews"
+              name="Reseñas"
+              parent="menu_catalogix_root"
+              action="action_catalogix_reviews"
+              sequence="25"/>
+</odoo>

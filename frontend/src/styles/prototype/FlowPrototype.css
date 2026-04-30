@@ -1,0 +1,491 @@
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap");
+
+:root {
+  --proto-bg: #091423;
+  --proto-bg-soft: #11243a;
+  --proto-surface: rgba(10, 23, 38, 0.82);
+  --proto-surface-strong: rgba(18, 38, 61, 0.96);
+  --proto-line: rgba(145, 198, 255, 0.14);
+  --proto-line-strong: rgba(87, 190, 255, 0.28);
+  --proto-copy: #e8f2ff;
+  --proto-copy-soft: #98adc8;
+  --proto-accent: #63d3ff;
+  --proto-accent-strong: #0ea5e9;
+  --proto-mint: #5ef2c4;
+  --proto-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.proto-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 48px 24px 72px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.24), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(94, 242, 196, 0.14), transparent 24%),
+    linear-gradient(180deg, #08111d 0%, var(--proto-bg) 48%, #060d16 100%);
+  color: var(--proto-copy);
+  font-family: "Manrope", sans-serif;
+}
+
+.proto-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(circle at center, black 42%, transparent 92%);
+  pointer-events: none;
+}
+
+.proto-hero,
+.proto-section,
+.proto-footer-card {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.proto-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 32px;
+}
+
+.proto-hero-copy,
+.proto-summary-card,
+.proto-stage-card,
+.proto-screen-card,
+.proto-role-card,
+.proto-footer-card {
+  border: 1px solid var(--proto-line);
+  background: linear-gradient(180deg, rgba(15, 31, 49, 0.92), rgba(8, 19, 31, 0.86));
+  box-shadow: var(--proto-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.proto-hero-copy {
+  padding: 40px;
+  border-radius: 28px;
+}
+
+.proto-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--proto-line-strong);
+  background: rgba(99, 211, 255, 0.08);
+  color: var(--proto-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.proto-hero-copy h1,
+.proto-section-head h2,
+.proto-role-card h3,
+.proto-footer-card h2,
+.proto-screen-card h3,
+.proto-stage-card h3 {
+  margin: 0;
+  font-family: "Lexend", sans-serif;
+}
+
+.proto-hero-copy h1 {
+  margin-top: 18px;
+  font-size: clamp(2.4rem, 4vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  max-width: 12ch;
+}
+
+.proto-hero-copy h1 span {
+  color: var(--proto-accent);
+}
+
+.proto-hero-copy p,
+.proto-stage-card p,
+.proto-screen-card p,
+.proto-role-card ul,
+.proto-footer-card h2 {
+  color: var(--proto-copy-soft);
+}
+
+.proto-hero-copy p {
+  max-width: 60ch;
+  margin: 18px 0 0;
+  line-height: 1.7;
+  font-size: 1.02rem;
+}
+
+.proto-actions,
+.proto-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.proto-primary,
+.proto-secondary {
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 18px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.proto-primary {
+  background: linear-gradient(135deg, var(--proto-accent-strong), var(--proto-mint));
+  color: #082033;
+}
+
+.proto-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--proto-copy);
+  border: 1px solid var(--proto-line);
+}
+
+.proto-primary:hover,
+.proto-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.proto-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0;
+  margin: 24px 0 0;
+  list-style: none;
+}
+
+.proto-badges li,
+.proto-screen-actions span,
+.proto-mini-chips span {
+  border-radius: 999px;
+  border: 1px solid var(--proto-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.proto-badges li {
+  padding: 10px 14px;
+  color: var(--proto-copy-soft);
+  font-size: 0.92rem;
+}
+
+.proto-summary-card {
+  border-radius: 28px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.proto-summary-head span,
+.proto-section-head span {
+  display: block;
+  color: var(--proto-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.proto-summary-head strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.32rem;
+}
+
+.proto-summary-card ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--proto-copy-soft);
+}
+
+.proto-summary-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--proto-line);
+  color: var(--proto-copy-soft);
+}
+
+.proto-summary-footer code,
+.proto-screen-link,
+.proto-role-top a {
+  color: var(--proto-accent);
+}
+
+.proto-section {
+  margin-top: 22px;
+}
+
+.proto-section-head {
+  margin-bottom: 18px;
+}
+
+.proto-section-head h2 {
+  margin-top: 8px;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  letter-spacing: -0.04em;
+}
+
+.proto-stage-grid,
+.proto-role-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.proto-stage-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.proto-role-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.proto-stage-card,
+.proto-role-card {
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.proto-stage-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(94, 242, 196, 0.18));
+  color: var(--proto-copy);
+  font-family: "Lexend", sans-serif;
+  font-size: 1.2rem;
+}
+
+.proto-stage-card h3 {
+  margin-top: 18px;
+  font-size: 1.2rem;
+}
+
+.proto-stage-card p {
+  margin: 10px 0 0;
+  line-height: 1.7;
+}
+
+.proto-stage-card ul,
+.proto-role-card ul {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.proto-screen-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.proto-screen-card {
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.proto-screen-top,
+.proto-role-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.proto-screen-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(94, 242, 196, 0.08);
+  border: 1px solid rgba(94, 242, 196, 0.16);
+  color: var(--proto-mint);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.proto-screen-link,
+.proto-role-top a {
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.proto-screen-card h3 {
+  margin-top: 16px;
+  font-size: 1.28rem;
+}
+
+.proto-screen-card p {
+  min-height: 68px;
+  margin: 10px 0 0;
+  line-height: 1.65;
+}
+
+.proto-mini-screen {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid var(--proto-line);
+  background:
+    radial-gradient(circle at top right, rgba(99, 211, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, rgba(19, 39, 61, 0.9), rgba(8, 16, 25, 0.86));
+}
+
+.proto-mini-topbar {
+  display: flex;
+  gap: 6px;
+}
+
+.proto-mini-topbar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.proto-mini-hero {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.34), rgba(94, 242, 196, 0.16));
+  font-family: "Lexend", sans-serif;
+  font-size: 1rem;
+}
+
+.proto-mini-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.proto-mini-chips span {
+  padding: 6px 10px;
+  color: var(--proto-copy-soft);
+  font-size: 0.82rem;
+}
+
+.proto-mini-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.proto-mini-panels div {
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--proto-copy-soft);
+  font-size: 0.84rem;
+}
+
+.proto-screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.proto-screen-actions span {
+  padding: 8px 10px;
+  color: var(--proto-copy-soft);
+  font-size: 0.84rem;
+}
+
+.proto-role-card h3 {
+  margin-top: 14px;
+  font-size: 1.3rem;
+}
+
+.proto-footer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 22px;
+  padding: 30px;
+  border-radius: 28px;
+}
+
+.proto-footer-card h2 {
+  margin-top: 10px;
+  max-width: 22ch;
+  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+  line-height: 1.2;
+}
+
+@media (max-width: 1080px) {
+  .proto-hero,
+  .proto-stage-grid,
+  .proto-screen-grid,
+  .proto-role-grid,
+  .proto-footer-card {
+    grid-template-columns: 1fr;
+  }
+
+  .proto-hero,
+  .proto-footer-card {
+    display: grid;
+  }
+}
+
+@media (max-width: 760px) {
+  .proto-shell {
+    padding: 20px 16px 56px;
+  }
+
+  .proto-hero-copy,
+  .proto-summary-card,
+  .proto-stage-card,
+  .proto-screen-card,
+  .proto-role-card,
+  .proto-footer-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .proto-mini-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .proto-screen-card p {
+    min-height: unset;
+  }
+}

@@ -1,0 +1,26 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_catalog_user,catalog.catalog user,model_catalog_catalog,base.group_user,1,0,0,0
+access_catalog_manager,catalog.catalog manager,model_catalog_catalog,base.group_system,1,1,1,1
+access_catalog_coupon_user,catalog.coupon user,model_catalog_coupon,base.group_user,1,1,1,1
+access_catalog_coupon_manager,catalog.coupon manager,model_catalog_coupon,base.group_system,1,1,1,1
+access_catalog_promotion_user,catalog.promotion user,model_catalog_promotion,base.group_user,1,1,1,1
+access_catalog_promotion_manager,catalog.promotion manager,model_catalog_promotion,base.group_system,1,1,1,1
+access_catalog_vendor_user,catalog.vendor user,model_catalog_vendor,odoo_module.group_vendor,1,1,1,0
+access_catalog_vendor_manager,catalog.vendor manager,model_catalog_vendor,base.group_system,1,1,1,1
+access_catalog_customer_user,catalog.customer user,model_catalog_customer,base.group_user,1,1,1,0
+access_catalog_customer_manager,catalog.customer manager,model_catalog_customer,base.group_system,1,1,1,1
+access_catalog_inventory_movement_user,catalog.inventory.movement user,model_catalog_inventory_movement,odoo_module.group_vendor,1,0,1,0
+access_catalog_inventory_movement_manager,catalog.inventory.movement manager,model_catalog_inventory_movement,base.group_system,1,1,1,1
+access_catalog_pricing_setting_user,catalog.pricing.setting user,model_catalog_pricing_setting,base.group_user,1,1,1,1
+access_catalog_pricing_setting_manager,catalog.pricing.setting manager,model_catalog_pricing_setting,base.group_system,1,1,1,1
+access_catalog_pricing_rule_user,catalog.pricing.rule user,model_catalog_pricing_rule,base.group_user,1,1,1,1
+access_catalog_pricing_rule_manager,catalog.pricing.rule manager,model_catalog_pricing_rule,base.group_system,1,1,1,1
+access_catalog_audit_log_user,catalog.audit.log user,model_catalog_audit_log,base.group_user,1,0,0,0
+access_catalog_audit_log_manager,catalog.audit.log manager,model_catalog_audit_log,base.group_system,1,1,1,1
+access_catalog_notification_user,catalog.notification user,model_catalog_notification,odoo_module.group_vendor,1,1,1,0
+access_catalog_notification_manager,catalog.notification manager,model_catalog_notification,base.group_system,1,1,1,1
+access_catalog_review_user,catalog.review user,model_catalog_review,base.group_user,1,1,1,0
+access_catalog_review_portal,catalog.review portal,model_catalog_review,base.group_portal,1,1,1,0
+access_catalog_review_public,catalog.review public,model_catalog_review,base.group_public,1,0,0,0
+access_catalog_review_vendor,catalog.review vendor,model_catalog_review,odoo_module.group_vendor,1,0,0,0
+access_catalog_review_manager,catalog.review manager,model_catalog_review,base.group_system,1,1,1,1

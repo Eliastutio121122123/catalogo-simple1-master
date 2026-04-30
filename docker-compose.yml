@@ -1,0 +1,84 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: catalogix
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - catalogix
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d catalogix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Odoo 19 ─────────────────────────────────────────────────────────────────
+  odoo:
+    image: odoo:19.0
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./backend:/mnt/extra-addons        # ← apunta a backend, no a backend/odoo_module
+      - ./odoo.conf:/etc/odoo/odoo.conf
+    environment:
+      HOST: db
+      PORT: 5432
+      USER: odoo
+      PASSWORD: 12345678
+    networks:
+      - catalogix
+
+  # ── Flask Backend ────────────────────────────────────────────────────────────
+  flask:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      network: host
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      ODOO_URL: http://odoo:8069
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      - odoo
+    networks:
+      - catalogix
+
+  # ── React Frontend ───────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - flask
+    networks:
+      - catalogix
+
+volumes:
+  postgres_data:
+  odoo_data:
+
+networks:
+  catalogix:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"

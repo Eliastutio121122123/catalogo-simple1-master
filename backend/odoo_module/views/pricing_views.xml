@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Pricing Settings -->
+    <record id="view_catalog_pricing_setting_list" model="ir.ui.view">
+        <field name="name">catalog.pricing.setting.list</field>
+        <field name="model">catalog.pricing.setting</field>
+        <field name="arch" type="xml">
+            <list string="Pricing Settings">
+                <field name="partner_id"/>
+                <field name="currency"/>
+                <field name="default_margin_percent"/>
+                <field name="tax_percent"/>
+                <field name="round_to"/>
+                <field name="allow_manual_discounts"/>
+                <field name="min_price_policy"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_pricing_setting_form" model="ir.ui.view">
+        <field name="name">catalog.pricing.setting.form</field>
+        <field name="model">catalog.pricing.setting</field>
+        <field name="arch" type="xml">
+            <form string="Pricing Settings">
+                <sheet>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="currency"/>
+                        <field name="default_margin_percent"/>
+                        <field name="tax_percent"/>
+                        <field name="round_to"/>
+                        <field name="allow_manual_discounts"/>
+                        <field name="min_price_policy"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_catalog_pricing_settings" model="ir.actions.act_window">
+        <field name="name">Pricing Settings</field>
+        <field name="res_model">catalog.pricing.setting</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Pricing Rules -->
+    <record id="view_catalog_pricing_rule_list" model="ir.ui.view">
+        <field name="name">catalog.pricing.rule.list</field>
+        <field name="model">catalog.pricing.rule</field>
+        <field name="arch" type="xml">
+            <list string="Pricing Rules">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="scope"/>
+                <field name="target"/>
+                <field name="rule_type"/>
+                <field name="value"/>
+                <field name="min_qty"/>
+                <field name="priority"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_pricing_rule_form" model="ir.ui.view">
+        <field name="name">catalog.pricing.rule.form</field>
+        <field name="model">catalog.pricing.rule</field>
+        <field name="arch" type="xml">
+            <form string="Pricing Rule">
+                <sheet>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="name"/>
+                        <field name="status"/>
+                    </group>
+                    <group>
+                        <field name="scope"/>
+                        <field name="target"/>
+                        <field name="rule_type"/>
+                        <field name="value"/>
+                        <field name="min_qty"/>
+                        <field name="priority"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_catalog_pricing_rules" model="ir.actions.act_window">
+        <field name="name">Pricing Rules</field>
+        <field name="res_model">catalog.pricing.rule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_catalogix_pricing_root"
+              name="Pricing"
+              parent="menu_catalogix_root"
+              sequence="35"/>
+
+    <menuitem id="menu_catalogix_pricing_settings"
+              name="Configuracion"
+              parent="menu_catalogix_pricing_root"
+              action="action_catalog_pricing_settings"
+              sequence="10"/>
+
+    <menuitem id="menu_catalogix_pricing_rules"
+              name="Reglas"
+              parent="menu_catalogix_pricing_root"
+              action="action_catalog_pricing_rules"
+              sequence="20"/>
+</odoo>

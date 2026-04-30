@@ -1,0 +1,189 @@
+import { useState, createContext, useContext, useEffect, useRef } from "react";
+import Router from "./router";
+import authService from "./services/odoo/authService";
+import { cartService } from "./services/odoo/cartService";
+
+// ─── Cart Context ─────────────────────────────────────────────────────────────
+// Uso en cualquier página: const { cartItems, addToCart, cartCount } = useCart();
+export const CartContext = createContext(null);
+export const useCart = () => useContext(CartContext);
+
+class CartPresenter {
+  constructor(normalizer) {
+    this.normalizer = normalizer;
+  }
+
+  add(items, product) {
+    const list = Array.isArray(items) ? items : [];
+    const normalized = this.normalizer ? this.normalizer.normalize(product) : product;
+    const existing = list.find((i) => i.id === normalized.id);
+    if (existing) {
+      return list.map((i) =>
+        i.id === normalized.id ? { ...i, qty: i.qty + (normalized.qty || 1) } : i
+      );
+    }
+    return [...list, { ...normalized, qty: normalized.qty || 1 }];
+  }
+
+  remove(items, productId) {
+    const list = Array.isArray(items) ? items : [];
+    return list.filter((i) => i.id !== productId);
+  }
+
+  updateQty(items, productId, qty) {
+    const list = Array.isArray(items) ? items : [];
+    if (qty <= 0) return this.remove(list, productId);
+    return list.map((i) => (i.id === productId ? { ...i, qty } : i));
+  }
+
+  count(items) {
+    const list = Array.isArray(items) ? items : [];
+    return list.reduce((s, i) => s + (i.qty || 0), 0);
+  }
+
+  total(items) {
+    const list = Array.isArray(items) ? items : [];
+    return list.reduce((s, i) => s + (Number(i.price || 0) * (i.qty || 0)), 0);
+  }
+}
+
+class CartSyncQueue {
+  constructor(service, delayMs = 500) {
+    this.service = service;
+    this.delayMs = delayMs;
+    this.timer = null;
+    this.pending = null;
+  }
+
+  schedule(items, cartId, onSaved, onError) {
+    this.pending = { items, cartId, onSaved, onError };
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), this.delayMs);
+  }
+
+  async flush() {
+    const payload = this.pending;
+    this.pending = null;
+    if (!payload) return;
+    try {
+      const res = await this.service.saveCart(payload.items, payload.cartId);
+      const nextId = res?.cart_id || res?.cartId || res?.id;
+      if (payload.onSaved) payload.onSaved(nextId);
+    } catch (err) {
+      if (payload.onError) payload.onError(err);
+    }
+  }
+}
+
+class CartItemNormalizer {
+  normalize(product) {
+    const base = product || {};
+    const images = Array.isArray(base.images) ? base.images : [];
+    const imageUrl =
+      base.imageUrl ||
+      base.image ||
+      images.find((img) => typeof img === "string") ||
+      "";
+    return {
+      ...base,
+      id: base.id || base.productId,
+      productId: base.productId || base.id,
+      imageUrl,
+    };
+  }
+}
+
+export default function App() {
+  const normalizerRef = useRef(new CartItemNormalizer());
+  const presenterRef = useRef(new CartPresenter(normalizerRef.current));
+  const syncRef = useRef(new CartSyncQueue(cartService, 450));
+  const cartIdRef = useRef(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [cartId, setCartId] = useState(null);
+  const [remoteEnabled, setRemoteEnabled] = useState(authService.isAuthenticated());
+
+  useEffect(() => {
+    cartIdRef.current = cartId;
+  }, [cartId]);
+
+  useEffect(() => {
+    let active = true;
+    if (!remoteEnabled) return undefined;
+
+    (async () => {
+      try {
+        const payload = await cartService.loadHydratedCart();
+        if (!active) return;
+        setCartItems(payload.items);
+        setCartId(payload.cartId);
+      } catch {
+        if (!active) return;
+        setRemoteEnabled(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [remoteEnabled]);
+
+  const addToCart = (product) => {
+    const nextItems = presenterRef.current.add(cartItems, product);
+    setCartItems(nextItems);
+    if (remoteEnabled) {
+      syncRef.current.schedule(nextItems, cartIdRef.current, (nextId) => {
+        if (nextId && nextId !== cartIdRef.current) setCartId(nextId);
+      });
+    }
+  };
+
+  const removeFromCart = (productId) => {
+    const nextItems = presenterRef.current.remove(cartItems, productId);
+    setCartItems(nextItems);
+    if (remoteEnabled) {
+      syncRef.current.schedule(nextItems, cartIdRef.current, (nextId) => {
+        if (nextId && nextId !== cartIdRef.current) setCartId(nextId);
+      });
+    }
+  };
+
+  const updateQty = (productId, qty) => {
+    const nextItems = presenterRef.current.updateQty(cartItems, productId, qty);
+    setCartItems(nextItems);
+    if (remoteEnabled) {
+      syncRef.current.schedule(nextItems, cartIdRef.current, (nextId) => {
+        if (nextId && nextId !== cartIdRef.current) setCartId(nextId);
+      });
+    }
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    if (remoteEnabled) {
+      syncRef.current.schedule([], cartIdRef.current, (nextId) => {
+        if (nextId && nextId !== cartIdRef.current) setCartId(nextId);
+      });
+    }
+  };
+
+  const cartCount = presenterRef.current.count(cartItems);
+  const cartTotal = presenterRef.current.total(cartItems);
+
+  const cartValue = {
+    cartItems,
+    cartId,
+    addToCart,
+    removeFromCart,
+    updateQty,
+    clearCart,
+    cartCount,
+    cartTotal,
+    remoteEnabled,
+  };
+
+  return (
+    <CartContext.Provider value={cartValue}>
+      <Router />
+    </CartContext.Provider>
+  );
+}

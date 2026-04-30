@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de lista de Catalogos -->
+    <record id="view_catalog_list" model="ir.ui.view">
+        <field name="name">catalog.catalog.list</field>
+        <field name="model">catalog.catalog</field>
+        <field name="arch" type="xml">
+            <list string="Catalogos">
+                <field name="name"/>
+                <field name="vendor_id"/>
+                <field name="product_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vista de formulario de Catalogo -->
+    <record id="view_catalog_form" model="ir.ui.view">
+        <field name="name">catalog.catalog.form</field>
+        <field name="model">catalog.catalog</field>
+        <field name="arch" type="xml">
+            <form string="Catalogo">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="vendor_id"/>
+                        <field name="image_1920" widget="image" class="oe_avatar"/>
+                        <field name="image_url" invisible="1"/>
+                        <field name="active"/>
+                    </group>
+                    <field name="description"/>
+                    <notebook>
+                        <page string="Productos">
+                            <field name="product_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="list_price"/>
+                                    <field name="qty_available"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Accion de menu -->
+    <record id="action_catalog_catalog" model="ir.actions.act_window">
+        <field name="name">Catalogos</field>
+        <field name="res_model">catalog.catalog</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Coupon views -->
+    <record id="view_catalog_coupon_list" model="ir.ui.view">
+        <field name="name">catalog.coupon.list</field>
+        <field name="model">catalog.coupon</field>
+        <field name="arch" type="xml">
+            <list string="Cupones">
+                <field name="code"/>
+                <field name="discount_type"/>
+                <field name="value"/>
+                <field name="status"/>
+                <field name="expires_at"/>
+                <field name="vendor_partner_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_coupon_form" model="ir.ui.view">
+        <field name="name">catalog.coupon.form</field>
+        <field name="model">catalog.coupon</field>
+        <field name="arch" type="xml">
+            <form string="Cupon">
+                <sheet>
+                    <group>
+                        <field name="code"/>
+                        <field name="discount_type"/>
+                        <field name="value"/>
+                        <field name="status"/>
+                        <field name="active"/>
+                    </group>
+                    <group>
+                        <field name="min_order_amount"/>
+                        <field name="max_discount_amount"/>
+                        <field name="max_uses"/>
+                        <field name="max_uses_per_user"/>
+                        <field name="expires_at"/>
+                    </group>
+                    <group>
+                        <field name="vendor_partner_id"/>
+                        <field name="catalog_ids" widget="many2many_tags"/>
+                    </group>
+                    <group>
+                        <field name="one_per_customer"/>
+                        <field name="new_customers_only"/>
+                        <field name="usage_count"/>
+                    </group>
+                    <field name="description"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_catalogix_products" model="ir.actions.act_window">
+        <field name="name">Productos</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_catalogix_orders" model="ir.actions.act_window">
+        <field name="name">Pedidos</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_catalogix_vendors" model="ir.actions.act_window">
+        <field name="name">Vendedores</field>
+        <field name="res_model">catalog.vendor</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_catalogix_coupons" model="ir.actions.act_window">
+        <field name="name">Cupones</field>
+        <field name="res_model">catalog.coupon</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_catalogix_root" name="Catalogix" sequence="10"/>
+
+    <menuitem id="menu_catalogix_catalogs"
+              name="Catalogos"
+              parent="menu_catalogix_root"
+              action="action_catalog_catalog"
+              sequence="10"/>
+
+    <menuitem id="menu_catalogix_products"
+              name="Productos"
+              parent="menu_catalogix_root"
+              action="action_catalogix_products"
+              sequence="20"/>
+
+    <menuitem id="menu_catalogix_vendors"
+              name="Vendedores"
+              parent="menu_catalogix_root"
+              action="action_catalogix_vendors"
+              sequence="30"/>
+
+    <menuitem id="menu_catalogix_coupons"
+              name="Cupones"
+              parent="menu_catalogix_root"
+              action="action_catalogix_coupons"
+              sequence="40"/>
+
+    <menuitem id="menu_catalogix_orders"
+              name="Pedidos"
+              parent="menu_catalogix_root"
+              action="action_catalogix_orders"
+              sequence="50"/>
+</odoo>

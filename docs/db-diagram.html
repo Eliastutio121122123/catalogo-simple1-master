@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DB Diagram</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+      h1 { font-size: 20px; margin: 0 0 8px; }
+      p { margin: 0 0 16px; color: #6b7280; }
+      .actions { margin: 12px 0 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+      button { border: 1px solid #e5e7eb; background: #111827; color: #fff; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+      button.secondary { background: #fff; color: #111827; }
+      .box { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; background: #fff; }
+      #output { overflow: auto; }
+      .note { font-size: 12px; color: #6b7280; margin-top: 8px; }
+      pre { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1>Diagrama de Base de Datos</h1>
+    <p>Este archivo renderiza el diagrama y te permite descargarlo en PNG.</p>
+    <div class="actions">
+      <button id="download">Descargar PNG</button>
+      <button id="reload" class="secondary">Re-render</button>
+    </div>
+    <div class="box" id="output">Cargando diagrama...</div>
+    <div class="note">Requiere internet para cargar Mermaid desde CDN.</div>
+
+    <pre id="diagram">erDiagram
+    RES_PARTNER {
+        int id
+        string name
+        string email
+        string phone
+    }
+
+    RES_USERS {
+        int id
+        string name
+        string login
+        string email
+    }
+
+    PRODUCT_TEMPLATE {
+        int id
+        string name
+        int catalog_id
+        float min_stock
+        float catalog_stock_qty
+    }
+
+    CATALOG_VENDOR {
+        int id
+        int partner_id
+        int user_id
+        string store_name
+        string status
+        string phone
+        string email
+        text notes
+    }
+
+    CATALOG_CUSTOMER {
+        int id
+        int partner_id
+        int user_id
+        string status
+        string phone
+        string email
+        text notes
+    }
+
+    CATALOG_CATALOG {
+        int id
+        string name
+        text description
+        string image_url
+        binary image_1920
+        bool active
+        int vendor_id
+        int product_count
+    }
+
+    CATALOG_INVENTORY_MOVEMENT {
+        int id
+        int vendor_id
+        int product_id
+        string sku
+        string type
+        float quantity
+        float before_stock
+        float after_stock
+        text note
+        string reference
+        int user_id
+    }
+
+    CATALOG_PRICING_SETTING {
+        int id
+        int partner_id
+        string currency
+        float default_margin_percent
+        float tax_percent
+        string round_to
+        bool allow_manual_discounts
+        string min_price_policy
+    }
+
+    CATALOG_PRICING_RULE {
+        int id
+        int partner_id
+        string name
+        string scope
+        string target
+        string rule_type
+        float value
+        int min_qty
+        int priority
+        string status
+    }
+
+    CATALOG_COUPON {
+        int id
+        string code
+        text description
+        string discount_type
+        float value
+        float min_order_amount
+        float max_discount_amount
+        int max_uses
+        int max_uses_per_user
+        date expires_at
+        string status
+        bool one_per_customer
+        bool new_customers_only
+        int usage_count
+        int vendor_partner_id
+        bool active
+    }
+
+    CATALOG_PROMOTION {
+        int id
+        string name
+        string code
+        text description
+        string promotion_type
+        float value
+        float min_order_amount
+        float max_discount_amount
+        string applies_to
+        date start_date
+        date end_date
+        int usage_limit
+        int used_count
+        string status
+        int vendor_partner_id
+        bool active
+    }
+
+    CATALOG_AUDIT_LOG {
+        int id
+        string code
+        datetime occurred_at
+        string actor_name
+        string actor_role
+        string ip_address
+        string action
+        string target
+        string severity
+        string status
+        text meta_json
+    }
+
+    CATALOG_COUPON_CATALOG_REL {
+        int coupon_id
+        int catalog_id
+    }
+
+    RES_PARTNER ||--o{ CATALOG_VENDOR : "partner_id"
+    RES_USERS ||--o{ CATALOG_VENDOR : "user_id"
+    RES_PARTNER ||--o{ CATALOG_CUSTOMER : "partner_id"
+    RES_USERS ||--o{ CATALOG_CUSTOMER : "user_id"
+    RES_PARTNER ||--o{ CATALOG_CATALOG : "vendor_id"
+
+    CATALOG_CATALOG ||--o{ PRODUCT_TEMPLATE : "catalog_id"
+
+    RES_PARTNER ||--o{ CATALOG_INVENTORY_MOVEMENT : "vendor_id"
+    PRODUCT_TEMPLATE ||--o{ CATALOG_INVENTORY_MOVEMENT : "product_id"
+    RES_USERS ||--o{ CATALOG_INVENTORY_MOVEMENT : "user_id"
+
+    RES_PARTNER ||--o{ CATALOG_PRICING_SETTING : "partner_id"
+    RES_PARTNER ||--o{ CATALOG_PRICING_RULE : "partner_id"
+
+    RES_PARTNER ||--o{ CATALOG_COUPON : "vendor_partner_id"
+    RES_PARTNER ||--o{ CATALOG_PROMOTION : "vendor_partner_id"
+
+    CATALOG_COUPON ||--o{ CATALOG_COUPON_CATALOG_REL : "coupon_id"
+    CATALOG_CATALOG ||--o{ CATALOG_COUPON_CATALOG_REL : "catalog_id"</pre>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      const output = document.getElementById("output");
+      const diagramText = document.getElementById("diagram").textContent;
+      const downloadBtn = document.getElementById("download");
+      const reloadBtn = document.getElementById("reload");
+
+      function renderDiagram() {
+        output.textContent = "Renderizando...";
+        mermaid.initialize({ startOnLoad: false, theme: "default" });
+        mermaid.render("db-diagram", diagramText).then(({ svg }) => {
+          output.innerHTML = svg;
+        }).catch((err) => {
+          output.textContent = "Error al renderizar diagrama.";
+          console.error(err);
+        });
+      }
+
+      function downloadPng() {
+        const svgEl = output.querySelector("svg");
+        if (!svgEl) {
+          alert("El diagrama aun no esta listo.");
+          return;
+        }
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.onload = () => {
+          const viewBox = svgEl.viewBox && svgEl.viewBox.baseVal;
+          const width = viewBox && viewBox.width ? viewBox.width : (svgEl.width ? parseFloat(svgEl.width.baseVal.value) : 1200);
+          const height = viewBox && viewBox.height ? viewBox.height : (svgEl.height ? parseFloat(svgEl.height.baseVal.value) : 800);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(width);
+          canvas.height = Math.ceil(height);
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          const pngUrl = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          a.href = pngUrl;
+          a.download = "db-diagram.png";
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        img.onerror = () => {
+          alert("No se pudo convertir a PNG.");
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
+
+      downloadBtn.addEventListener("click", downloadPng);
+      reloadBtn.addEventListener("click", renderDiagram);
+      renderDiagram();
+    </script>
+  </body>
+</html>
