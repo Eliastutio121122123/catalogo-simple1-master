@@ -53,10 +53,11 @@ class PeriodRange:
             prev_start, prev_end = cls._year_bounds(prev_year)
             return cls("año", start, end, prev_start, prev_end)
 
-        # default: mes
-        start, end = cls._month_bounds(today)
-        prev_month = (start - timedelta(days=1))
-        prev_start, prev_end = cls._month_bounds(prev_month)
+        # default: mes = últimos 30 días (rolling, igual que semana)
+        start = today - timedelta(days=29)
+        end = today
+        prev_end = start - timedelta(days=1)
+        prev_start = prev_end - timedelta(days=29)
         return cls("mes", start, end, prev_start, prev_end)
 
     def to_dict(self) -> dict:
