@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 import calendar
+import os
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None  # type: ignore
 
 from .client import odoo
 from .users import UserService
@@ -29,7 +35,7 @@ class PeriodRange:
 
     @classmethod
     def from_period(cls, period: str | None) -> "PeriodRange":
-        today = date.today()
+        today = _local_today()
         key = (period or "mes").strip().lower()
         if key in {"hoy", "dia", "día"}:
             start = end = today
@@ -175,10 +181,11 @@ class VendorDashboardService:
     def _order_lines(self, product_ids: list[int], start: date, end: date) -> list[dict]:
         if not product_ids:
             return []
-        start_dt = f"{start.isoformat()} 00:00:00"
-        end_dt = f"{end.isoformat()} 23:59:59"
+        start_dt, end_dt = _local_dates_to_utc_range(start, end)
         domain = [
-            ["product_id", "in", product_ids],
+            # sale.order.line.product_id is product.product (variant). Vendor products are product.template.
+            # Filter lines by template via related field.
+            ["product_id.product_tmpl_id", "in", product_ids],
             ["order_id.date_order", ">=", start_dt],
             ["order_id.date_order", "<=", end_dt],
         ]
@@ -256,18 +263,12 @@ class VendorDashboardService:
             return []
 
         line_by_order: dict[int, list[dict]] = {}
-        product_ids = set()
         for line in lines:
             order = line.get("order_id") or []
             if not order:
                 continue
             oid = int(order[0])
             line_by_order.setdefault(oid, []).append(line)
-            prod = line.get("product_id") or []
-            if prod:
-                product_ids.add(int(prod[0]))
-
-        product_map = self._product_map(product_ids)
         sorted_orders = sorted(
             orders.values(),
             key=lambda o: o.get("date_order") or "",
@@ -282,7 +283,8 @@ class VendorDashboardService:
                 continue
             top_line = max(lines_for_order, key=lambda l: float(l.get("product_uom_qty") or 0))
             product = top_line.get("product_id") or []
-            prod_name = product_map.get(int(product[0]), {}).get("name") if product else ""
+            # product_id is a (id, display_name) pair in Odoo read/search_read
+            prod_name = product[1] if isinstance(product, list) and len(product) > 1 else ""
             amount = sum(float(l.get("price_subtotal") or 0) for l in lines_for_order)
             partner = order.get("partner_id") or []
             out.append(
@@ -310,27 +312,62 @@ class VendorDashboardService:
         return "pending"
 
     def _product_map(self, product_ids: set[int]) -> dict[int, dict]:
+        """Map product.template ids -> product.template rows."""
         if not product_ids:
             return {}
         rows = self._client.read("product.template", list(product_ids), self.PRODUCT_FIELDS)
         return {int(r["id"]): r for r in rows if r.get("id")}
 
+    def _variant_template_map(self, variant_ids: set[int]) -> dict[int, int]:
+        """Map product.product ids -> product.template ids."""
+        if not variant_ids:
+            return {}
+        rows = self._client.read("product.product", list(variant_ids), ["id", "product_tmpl_id"])
+        out: dict[int, int] = {}
+        for row in rows or []:
+            vid = row.get("id")
+            tmpl = (row.get("product_tmpl_id") or [])
+            if not vid or not tmpl:
+                continue
+            try:
+                out[int(vid)] = int(tmpl[0])
+            except Exception:
+                continue
+        return out
+
     def _top_products(self, lines: list[dict]) -> list[dict]:
         if not lines:
             return []
         agg: dict[int, dict] = {}
-        product_ids = set()
+        variant_ids: set[int] = set()
         for line in lines:
             prod = line.get("product_id") or []
             if not prod:
                 continue
-            pid = int(prod[0])
-            product_ids.add(pid)
-            entry = agg.setdefault(pid, {"sold": 0.0, "revenue": 0.0})
+            try:
+                variant_ids.add(int(prod[0]))
+            except Exception:
+                continue
+
+        variant_to_template = self._variant_template_map(variant_ids)
+        template_ids = set(variant_to_template.values())
+        products = self._product_map(template_ids)
+
+        for line in lines:
+            prod = line.get("product_id") or []
+            if not prod:
+                continue
+            try:
+                vid = int(prod[0])
+            except Exception:
+                continue
+            tid = variant_to_template.get(vid)
+            if not tid:
+                continue
+            entry = agg.setdefault(tid, {"sold": 0.0, "revenue": 0.0})
             entry["sold"] += float(line.get("product_uom_qty") or 0)
             entry["revenue"] += float(line.get("price_subtotal") or 0)
 
-        products = self._product_map(product_ids)
         ranked = sorted(
             agg.items(),
             key=lambda item: (item[1]["sold"], item[1]["revenue"]),
@@ -389,7 +426,7 @@ class VendorDashboardService:
     def _chart_last_7_days(self, product_ids: list[int]) -> dict:
         if not product_ids:
             return {"labels": [], "values": [], "total": 0}
-        end = date.today()
+        end = _local_today()
         start = end - timedelta(days=6)
         lines = self._order_lines(product_ids, start, end)
         orders = self._orders_from_lines(lines)
@@ -399,6 +436,7 @@ class VendorDashboardService:
             day = start + timedelta(days=i)
             buckets[day.isoformat()] = 0.0
 
+        local_tz = _local_tzinfo()
         for line in lines:
             order = line.get("order_id") or []
             if not order:
@@ -409,7 +447,12 @@ class VendorDashboardService:
             if not date_order:
                 continue
             try:
-                day = datetime.fromisoformat(date_order.replace("Z", "")).date().isoformat()
+                parsed = datetime.fromisoformat(str(date_order).replace("Z", "").replace(" ", "T"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                if local_tz:
+                    parsed = parsed.astimezone(local_tz)
+                day = parsed.date().isoformat()
             except ValueError:
                 continue
             if day in buckets:
@@ -430,3 +473,53 @@ class VendorDashboardService:
 
 
 vendor_dashboard_service = VendorDashboardService(odoo)
+
+
+def _timezone_name() -> str:
+    return (
+        os.getenv("APP_TIMEZONE")
+        or os.getenv("TIMEZONE")
+        or os.getenv("TZ")
+        or "America/Santo_Domingo"
+    )
+
+
+def _local_tzinfo():
+    if ZoneInfo is None:
+        name = _timezone_name()
+        if name == "America/Santo_Domingo":
+            return timezone(timedelta(hours=-4))
+        return None
+    name = _timezone_name()
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        if name == "America/Santo_Domingo":
+            return timezone(timedelta(hours=-4))
+        return None
+
+
+def _local_today() -> date:
+    tz = _local_tzinfo()
+    if tz:
+        return datetime.now(tz).date()
+    return date.today()
+
+
+def _local_dates_to_utc_range(start: date, end: date) -> tuple[str, str]:
+    """
+    Convert local-day bounds to UTC strings for Odoo domain filters.
+
+    Odoo stores datetimes in UTC. When containers run in UTC but the UI is in a
+    local timezone (e.g., America/Santo_Domingo), "hoy" and "mes" must be
+    computed in local time but queried in UTC.
+    """
+    tz = _local_tzinfo()
+    if not tz:
+        return f"{start.isoformat()} 00:00:00", f"{end.isoformat()} 23:59:59"
+
+    start_local = datetime.combine(start, time.min, tzinfo=tz)
+    end_local = datetime.combine(end, time.max.replace(microsecond=0), tzinfo=tz)
+    start_utc = start_local.astimezone(timezone.utc)
+    end_utc = end_local.astimezone(timezone.utc)
+    return start_utc.strftime("%Y-%m-%d %H:%M:%S"), end_utc.strftime("%Y-%m-%d %H:%M:%S")

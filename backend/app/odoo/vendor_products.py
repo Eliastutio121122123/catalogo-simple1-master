@@ -1,5 +1,6 @@
 from .client import odoo
 from .inventory import set_onhand_for_template
+from .variant_options import attach_variant_options
 import base64
 import binascii
 
@@ -48,6 +49,8 @@ PRODUCT_FIELDS = [
     "active",
     "standard_price",
     "min_stock",
+    "currency_id",
+    "attribute_line_ids",
 ]
 
 
@@ -221,7 +224,7 @@ class VendorProductService:
 
     @staticmethod
     def _vendor_catalog_ids(partner_id: int) -> list[int]:
-        return odoo.search("catalog.catalog", [["vendor_id", "=", partner_id]])
+        return odoo.call("catalog.catalog", "search", [[["vendor_id", "=", partner_id]]], {"context": {"active_test": False}}) or []
 
     @staticmethod
     def _resolve_category_id(name: str | None) -> int | None:
@@ -240,11 +243,11 @@ class VendorProductService:
         catalog_id = payload.get("catalog_id")
         if catalog_id:
             cid = int(catalog_id)
-            rows = odoo.search_read(
+            rows = odoo.call(
                 "catalog.catalog",
-                [["id", "=", cid], ["vendor_id", "=", partner_id]],
-                ["id"],
-                limit=1,
+                "search_read",
+                [[["id", "=", cid], ["vendor_id", "=", partner_id]]],
+                {"fields": ["id"], "limit": 1, "context": {"active_test": False}},
             )
             return int(rows[0]["id"]) if rows else None
 
@@ -255,11 +258,11 @@ class VendorProductService:
             if existing:
                 return int(existing[0])
 
-            vendor_rows = odoo.search_read(
+            vendor_rows = odoo.call(
                 "catalog.vendor",
-                [["partner_id", "=", partner_id]],
-                ["store_name"],
-                limit=1,
+                "search_read",
+                [[["partner_id", "=", partner_id]]],
+                {"fields": ["store_name"], "limit": 1, "context": {"active_test": False}},
             )
             store_name = vendor_rows[0].get("store_name") if vendor_rows else None
             default_name = store_name or "Catalogo principal"
@@ -272,11 +275,11 @@ class VendorProductService:
                     "active": True,
                 },
             )
-        rows = odoo.search_read(
+        rows = odoo.call(
             "catalog.catalog",
-            [["vendor_id", "=", partner_id], ["name", "ilike", str(catalog_name).strip()]],
-            ["id", "name"],
-            limit=1,
+            "search_read",
+            [[["vendor_id", "=", partner_id], ["name", "ilike", str(catalog_name).strip()]]],
+            {"fields": ["id", "name"], "limit": 1, "context": {"active_test": False}},
         )
         if rows:
             return int(rows[0]["id"])
@@ -326,7 +329,7 @@ class VendorProductService:
         rows = odoo.read("product.template", [product_id], PRODUCT_FIELDS)
         if not rows:
             raise LookupError("Product not found")
-        product = cls._attach_images(rows[0])
+        product = attach_variant_options(cls._attach_images(rows[0]))
         catalog = product.get("catalog_id") or []
         if not catalog:
             raise LookupError("Product is not assigned to a catalog")
@@ -356,6 +359,14 @@ class VendorProductService:
         if not catalog_id:
             raise ValueError("Valid catalog is required")
 
+        currency_str = payload.get("currency")
+        currency_id = None
+        if currency_str:
+            currency_code = "DOP" if currency_str == "RD$" else currency_str
+            cur_rows = odoo.call("res.currency", "search_read", [[["name", "=", currency_code]]], {"fields": ["id"], "limit": 1})
+            if cur_rows:
+                currency_id = cur_rows[0]["id"]
+
         category_id = cls._resolve_category_id(payload.get("category"))
         values = {
             "name": name,
@@ -367,6 +378,8 @@ class VendorProductService:
             "active": True,
             "sale_ok": True,
         }
+        if currency_id:
+            values["currency_id"] = currency_id
         if payload.get("minStock") is not None or payload.get("min_stock") is not None:
             values["min_stock"] = float(payload.get("minStock") or payload.get("min_stock") or 0)
         if category_id:
@@ -427,7 +440,7 @@ class VendorProductService:
         if not rows:
             raise LookupError("Product not found after creation")
 
-        product = cls._attach_images(rows[0])
+        product = attach_variant_options(cls._attach_images(rows[0]))
         # Ensure catalog_id is set (defensive).
         if catalog_id:
             assigned = product.get("catalog_id") or []
@@ -479,6 +492,14 @@ class VendorProductService:
             if not catalog_id:
                 raise ValueError("Valid catalog is required")
             values["catalog_id"] = catalog_id
+        
+        currency_str = payload.get("currency")
+        if currency_str:
+            currency_code = "DOP" if currency_str == "RD$" else currency_str
+            cur_rows = odoo.call("res.currency", "search_read", [[["name", "=", currency_code]]], {"fields": ["id"], "limit": 1})
+            if cur_rows:
+                values["currency_id"] = cur_rows[0]["id"]
+                
         if "status" in payload:
             status = (payload.get("status") or "").strip().lower()
             if status in {"active", "inactive", "draft"}:

@@ -94,8 +94,8 @@ const getVendorName = (vendor) => {
 const toCatalogView = (row, idx) => {
   const palette = PALETTE[idx % PALETTE.length];
   const products = Number(row.product_count || 0);
-  const rating = products > 0 ? 4.7 : 0;
-  const reviews = products > 0 ? Math.min(999, products * 6) : 0;
+  const rating = Number(row.rating ?? (products > 0 ? 4.7 : 0));
+  const reviews = Number(row.reviews ?? (products > 0 ? Math.min(999, products * 6) : 0));
   const tag = products >= 50 ? "Destacado" : products <= 5 ? "Nuevo" : null;
   const image = row.image_url || (Array.isArray(row.image_urls) ? row.image_urls[0] : null) || null;
   return {

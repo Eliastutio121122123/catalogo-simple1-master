@@ -182,6 +182,8 @@ class PaymentService:
             if int(l.get("product_id") or 0) > 0 and float(l.get("qty") or 0) > 0
         ]
 
+        lines = self._resolve_product_variants(lines)
+
         order_id, order = self._resolve_order(partner_id, request, lines)
         self._apply_delivery(order_id, partner_id, request.delivery())
         order, was_confirmed = self._confirm_order(order_id, order)
@@ -220,6 +222,36 @@ class PaymentService:
             payment_status=payment_status,
             card_last4=request.card_last4() or None,
         )
+
+    def _resolve_product_variants(self, lines: list[PaymentLine]) -> list[PaymentLine]:
+        if not lines:
+            return lines
+
+        template_ids = list({l.product_id for l in lines})
+        try:
+            templates = self._client.read(
+                "product.template",
+                template_ids,
+                ["id", "product_variant_id", "product_variant_ids"]
+            )
+        except Exception:
+            return lines
+
+        tmpl_map = {}
+        for t in templates:
+            vid = t.get("product_variant_id")
+            if vid:
+                tmpl_map[t["id"]] = int(vid[0]) if isinstance(vid, list) else int(vid)
+            else:
+                vids = t.get("product_variant_ids")
+                if vids:
+                    tmpl_map[t["id"]] = int(vids[0])
+
+        for line in lines:
+            variant_id = tmpl_map.get(line.product_id)
+            if variant_id:
+                line.product_id = variant_id
+        return lines
 
     def _apply_delivery(self, order_id: int, partner_id: int, payload: dict | None) -> None:
         try:
@@ -426,6 +458,12 @@ class PaymentService:
             order = self._read_order(existing_id)
             partner = order.get("partner_id") or []
             if not partner or int(partner[0]) != int(partner_id):
+                # If a stale/foreign order_id/cart_id is provided but the client supplied fresh lines,
+                # create a new draft order for the current partner instead of failing checkout.
+                # This avoids leaking/modifying the foreign order while keeping UX smooth.
+                if lines:
+                    order_id = self._create_order(int(partner_id), lines)
+                    return order_id, self._read_order(order_id)
                 raise PermissionError("Order does not belong to this partner")
             if lines and order.get("state") in {"draft", "sent"}:
                 self._replace_lines(existing_id, lines)

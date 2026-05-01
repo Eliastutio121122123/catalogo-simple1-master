@@ -39,6 +39,29 @@ const buildProductDetail = (row) => {
   const image = imagesFromApi[0] || row.image_url || null;
   const images = imagesFromApi.length ? imagesFromApi : (image ? [image] : FALLBACK_IMAGES);
 
+  const colorsFromApi = Array.isArray(row.colors) ? row.colors : [];
+  const colors = colorsFromApi
+    .map((c, idx) => {
+      if (!c) return null;
+      if (typeof c === "string") {
+        const hex = c.trim();
+        return { id: hex, name: hex, hex: hex.startsWith("#") ? hex : "#94a3b8" };
+      }
+      const id = String(c.id ?? c.name ?? idx);
+      const name = String(c.name ?? c.hex ?? id);
+      const hex =
+        typeof c.hex === "string" && c.hex.trim()
+          ? c.hex.trim()
+          : typeof c.name === "string" && c.name.trim().startsWith("#")
+            ? c.name.trim()
+            : "#94a3b8";
+      return { id, name, hex };
+    })
+    .filter(Boolean);
+
+  const sizesFromApi = Array.isArray(row.sizes) ? row.sizes : [];
+  const sizes = sizesFromApi.filter(Boolean).map(String);
+
   return {
     id: row.id,
     name: row.name || "Producto",
@@ -50,8 +73,8 @@ const buildProductDetail = (row) => {
     category,
     price: Number(row.list_price || 0),
     original: row.original_price ? Number(row.original_price) : null,
-    rating: stock > 0 ? 4.7 : 0,
-    reviews: stock > 0 ? Math.min(250, stock * 3) : 0,
+    rating: Number(row.rating ?? 0),
+    reviews: Number(row.reviews ?? 0),
     sold: 0,
     stock,
     sku: row.default_code || `SKU-${row.id}`,
@@ -64,8 +87,8 @@ const buildProductDetail = (row) => {
       "Entrega coordinada con el vendedor",
       "Pago seguro en Catalogix",
     ],
-    colors: [{ id: "default", name: "Estándar", hex: "#94a3b8" }],
-    sizes: ["Único"],
+    colors: colors.length ? colors : [{ id: "default", name: "Estándar", hex: "#94a3b8" }],
+    sizes: sizes.length ? sizes : ["Único"],
     images,
     imageUrl: image || "",
     reviews_data: [],

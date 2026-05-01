@@ -51,6 +51,24 @@ const fromApiProduct = (product) => {
   const catalog = Array.isArray(product.catalog_id) ? product.catalog_id[1] : "";
   const imagesBase64 = Array.isArray(product.images_base64) ? product.images_base64.slice(0, 4) : [];
   const images = imagesBase64.map(toImageDataUrl).filter(Boolean);
+
+  const colorsFromApi = Array.isArray(product.colors) ? product.colors : [];
+  let colors = colorsFromApi
+    .map((c) => {
+      if (!c) return null;
+      if (typeof c === "string") return c;
+      if (typeof c.hex === "string" && c.hex.trim()) return c.hex.trim();
+      if (typeof c.name === "string" && c.name.trim().startsWith("#")) return c.name.trim();
+      return null;
+    })
+    .filter(Boolean);
+
+  const sizesFromApi = Array.isArray(product.sizes) ? product.sizes : [];
+  let sizes = sizesFromApi.filter(Boolean).map(String);
+
+  // Don't treat storefront fallbacks as real variants in the vendor form.
+  if (colors.length === 1 && String(colors[0]).toLowerCase() === "#94a3b8") colors = [];
+  if (sizes.length === 1 && sizes[0].toLowerCase() === "único") sizes = [];
   return {
     ...EMPTY,
     name: product.name || "",
@@ -66,6 +84,8 @@ const fromApiProduct = (product) => {
     minStock: product.min_stock != null ? String(product.min_stock) : "5",
     status: product.active === false ? "inactive" : "active",
     images,
+    colors,
+    sizes,
   };
 };
 

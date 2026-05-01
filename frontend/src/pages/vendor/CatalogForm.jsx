@@ -144,6 +144,7 @@ export default function CatalogForm() {
       ...EMPTY_FORM,
       name,
       slug,
+      category: raw?.category || "",
       description: raw?.description || "",
       imageUrl,
       status: raw?.active ? "active" : "inactive",
@@ -221,6 +222,7 @@ export default function CatalogForm() {
       const isRemoteUrl = (form.imageUrl || "").startsWith("http");
       const payload = {
         name: form.name,
+        category: form.category,
         description: form.description,
         status,
         product_ids: form.selectedProducts,

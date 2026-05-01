@@ -1,4 +1,5 @@
 from .client import odoo
+from .variant_options import attach_variant_options
 
 PRODUCT_FIELDS = [
     "id",
@@ -16,6 +17,7 @@ PRODUCT_FIELDS = [
     "product_variant_ids",
     "attribute_line_ids",
     "image_1920",
+    "currency_id",
 ]
 
 _RES_PARTNER_FIELDS: list[str] | None = None
@@ -306,7 +308,7 @@ class ProductService:
         if not results:
             raise LookupError(f"Product {product_id} not found")
         # For detail views we include vendor info and all product images.
-        return _attach_product_images(_attach_vendor(results[0]))
+        return attach_variant_options(_attach_product_images(_attach_vendor(results[0])))
 
     @staticmethod
     def search(query: str, filters: dict | None = None, limit=50, offset=0) -> list:

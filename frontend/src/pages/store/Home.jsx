@@ -72,8 +72,10 @@ const SAMPLE_CATEGORIES = [
   { name: "Otros",       emoji: "📦", count: 12  },
 ];
 
-const formatPrice = (p) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP", maximumFractionDigits: 0 }).format(p);
+const formatPrice = (p, currency = "DOP") => {
+  const code = currency === "RD$" ? "DOP" : (currency || "DOP");
+  return new Intl.NumberFormat("es-DO", { style: "currency", currency: code, maximumFractionDigits: 0 }).format(p);
+};
 
 const PALETTE = ["#1d4ed8", "#0891b2", "#1e40af", "#0e7490", "#7c3aed", "#16a34a", "#f97316", "#dc2626"];
 
@@ -145,7 +147,8 @@ const adaptHomeData = (payload) => {
           name: row?.name || "Catálogo",
           vendor: nameFromPair(row?.vendor_id) || "Vendedor",
           products,
-          rating: products > 0 ? 4.7 : 0,
+          rating: Number(row?.rating ?? 0),
+          reviews: Number(row?.reviews ?? 0),
           badge,
           color: PALETTE[idx % PALETTE.length],
           emoji: "🏪",
@@ -168,6 +171,7 @@ const adaptHomeData = (payload) => {
           emoji: emojiForCategory(catName),
           hot: false,
           imageUrl: row?.image_url || (Array.isArray(row?.image_urls) ? row.image_urls[0] : null) || null,
+          currency: Array.isArray(row?.currency_id) ? row.currency_id[1] : "DOP",
         };
       })
     : [];
@@ -268,8 +272,8 @@ export default function Home() {
               </div>
 
               <h1 className="hero-h1">
-                Descubre los<br />mejores<br />
-                <span className="grad">catálogos.</span>
+                Descubre los mejores<br />
+                <span className="grad">productos.</span>
               </h1>
 
               <p className="hero-p">
@@ -419,7 +423,7 @@ export default function Home() {
               <button className="see-all" onClick={() => goSearch("destacados")}>Ver todos <IconArrow /></button>
             </div>
             <div className="product-grid">
-              {featuredProducts.map((p, idx) => {
+              {featuredProducts.slice(0, 6).map((p, idx) => {
                 const disc = p.originalPrice ? Math.round((1 - p.price / p.originalPrice) * 100) : null;
                 const done = added === p.id;
                 return (
@@ -435,9 +439,9 @@ export default function Home() {
                     <div className="product-body">
                       <div className="product-name" onClick={() => goProduct(p.id)}>{p.name}</div>
                       <div className="price-row">
-                        <span className="price-main">{formatPrice(p.price)}</span>
+                        <span className="price-main">{formatPrice(p.price, p.currency)}</span>
                         {p.originalPrice && <>
-                          <span className="price-old">{formatPrice(p.originalPrice)}</span>
+                          <span className="price-old">{formatPrice(p.originalPrice, p.currency)}</span>
                           <span className="price-disc">-{disc}%</span>
                         </>}
 
@@ -579,8 +583,7 @@ export default function Home() {
           color:white; line-height:1.05; letter-spacing:-1.5px; margin-bottom:22px;
         }
         .hero-h1 .grad {
-          background:linear-gradient(90deg,var(--teal-400),var(--blue-400));
-          -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+          color: var(--teal-400);
         }
         .hero-p {
           font-size:17px; font-weight:300; color:rgba(255,255,255,0.45);

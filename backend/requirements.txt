@@ -9,3 +9,4 @@ google-auth==2.38.0
 cryptography>=38.0.3,<46.0.0
 pyasn1>=0.4.8,<0.7.0
 pyasn1-modules==0.3.0
+tzdata>=2024.1

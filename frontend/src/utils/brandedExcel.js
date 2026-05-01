@@ -91,7 +91,7 @@ const colWidthHint = (col) => {
 
 const colWidth = (col) => {
   const base = colWidthHint(col);
-  return Math.min(44, Math.max(14, Math.round(base * 1.5)));
+  return Math.min(250, Math.max(60, Math.round(base * 4.5)));
 };
 
 const isNumericColumn = (col, value) => {
@@ -143,26 +143,12 @@ const buildExcelHtml = ({ sheetName, reportTitle, columns, rows, brandName, logo
 
   // ── Logo + brand row ───────────────────────────────────────────────────────
   // Logo image embedded as base64 so it always renders — falls back to brand name text.
-  const logoImg = logoDataUrl
-    ? `<img src="${escapeHtml(logoDataUrl)}" width="52" height="52" alt="${escapeHtml(safeBrand)}"
-           style="display:block;vertical-align:middle;" />`
-    : `<b><font size="5" color="${C_ACCENT}">${escapeHtml(safeBrand)}</font></b>`;
-
   const logoRow = `
   <tr>
     ${padCellDark(C_HEADER_BG)}
-    <td colspan="${dataColCount}" bgcolor="${escapeHtml(C_HEADER_BG)}" style="padding:14px 8px 12px 8px;border:none;">
-      <table border="0" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="padding-right:12px;vertical-align:middle;">
-            ${logoImg}
-          </td>
-          <td style="vertical-align:middle;">
-            <b><font size="6" color="#ffffff" face="Calibri,Arial,sans-serif">${escapeHtml(safeBrand)}</font></b>
-            <font color="${escapeHtml(C_ACCENT)}"><b>&nbsp;&#x25cf;</b></font>
-          </td>
-        </tr>
-      </table>
+    <td colspan="${dataColCount}" bgcolor="${escapeHtml(C_HEADER_BG)}" align="center" style="padding:16px 8px 12px 8px;border:none;">
+      <b><font size="6" color="#ffffff" face="Calibri,Arial,sans-serif">${escapeHtml(safeBrand)}</font></b>
+      <font color="${escapeHtml(C_ACCENT)}"><b>&nbsp;&#x25cf;</b></font>
     </td>
     ${padCellDark(C_HEADER_BG)}
   </tr>`;

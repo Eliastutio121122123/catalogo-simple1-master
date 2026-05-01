@@ -217,8 +217,29 @@ export default function Products() {
       setError(err?.message || "No se pudo actualizar el estado.");
     }
   };
-  const doBulkDel   = ()  => { setData(d => d.filter(p => !selected.has(p.id))); setSelected(new Set()); };
-  const doBulkAct   = ()  => { setData(d => d.map(p => selected.has(p.id) ? { ...p, status:"active" } : p)); setSelected(new Set()); };
+  const doBulkDel = async () => {
+    setLoading(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => vendorProductService.remove(id)));
+      setSelected(new Set());
+      await loadProducts();
+    } catch (err) {
+      setError("Ocurrió un error al eliminar algunos productos.");
+      setLoading(false);
+    }
+  };
+
+  const doBulkAct = async () => {
+    setLoading(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => vendorProductService.update(id, { status: "active" })));
+      setSelected(new Set());
+      await loadProducts();
+    } catch (err) {
+      setError("Ocurrió un error al activar algunos productos.");
+      setLoading(false);
+    }
+  };
 
   const exportExcelLegacy = () => {
     const rows = selected.size ? filtered.filter(p => selected.has(p.id)) : filtered;

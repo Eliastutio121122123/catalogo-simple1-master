@@ -1,138 +1,132 @@
-# Catalogix (Catálogo Simple)
+# README
 
-Catalogix es una plataforma completa de comercio electrónico y gestión de vendedores (multi-vendor) profundamente integrada con **Odoo 19**. 
+## Nombre del Proyecto
+Catalogix (Sistema de venta de catalogos digitales)
 
-El sistema se compone de un Front-End moderno y ultrarrápido construido con React y Vite, y un Backend robusto en Flask que actúa como middleware y puente ligero mediante **JSON-RPC** hacia el ERP de Odoo, el cual maneja la facturación, los inventarios y la contabilidad.
+## Descripción del Proyecto
+Catalogix es una plataforma completa de comercio electrónico y gestión de múltiples vendedores (multi-vendor) profundamente integrada con Odoo 19. El sistema actúa como un puente tecnológico que permite a vendedores independientes gestionar sus catálogos, inventarios, facturación y pagos desde un entorno moderno, mientras sincroniza de manera bidireccional toda la data contable, de ventas e inventario con el ERP centralizado Odoo.
 
----
+## Tecnologías Utilizadas
+### **Frontend (Cliente y Dashboards)**
+* React 19 + Vite
+* Zustand y React Context (Manejo de estados)
+* React Hook Form + Zod (Validaciones)
+* CSS Vanilla / Variables globales
+* Recharts (Gráficas estadísticas)
 
-## 🚀 Características Principales
+### **Backend (Middleware)**
+* Python 3.10+ / Flask
+* Odoo JSON-RPC Client (Desarrollo a medida)
+* PyJWT & Flask-CORS
+* SDK de Stripe y PayPal
 
-* **Aplicación de Tienda (Storefront):** Catálogo de productos, carrito de compras persistente, y checkout integrado (soporte para Stripe, PayPal, Transferencias y Efectivo).
-* **Panel de Vendedores (Vendor Dashboard):** Los vendedores pueden gestionar sus propios productos, inventario, precios, cupones, promociones y visualizar sus reportes y métricas de ventas.
-* **Panel de Administración (Admin Dashboard):** Herramientas globales de control para administradores, enfocadas en auditar transacciones, pagos, catálogos, órdenes de clientes y moderar cuentas.
-* **Integración Nativa con Odoo 19:** Utilización del moderno API JSON-RPC de Odoo para mantener el catálogo, el inventario, perfiles de usuario y asientos contables sincronizados en tiempo real.
-* **Sistema Seguro:** Autenticación local mediante JWT para la API en conjunción con validación de sesiones directas de Odoo.
+### **Infraestructura y Datos**
+* Docker y Docker Compose
+* Instancia Oficial Odoo 19
+* PostgreSQL 16
+* Meta Cloud API (WhatsApp)
 
----
+## Características del Sistema
+* **Storefront (Tienda Pública):** Exploración de catálogos, búsqueda avanzada, carrito de compras persistente y sistema de checkout multi-método.
+* **Panel de Vendedores (Vendor Dashboard):** Administración de productos, configuración de precios en múltiples monedas (DOP, USD, EUR), inventario, gestión de cupones, reportes de ingresos y visualización de órdenes.
+* **Panel de Administración (Admin Dashboard):** Herramientas globales de auditoría, gestión de pagos, control de catálogos y moderación de cuentas de clientes/vendedores.
+* **Integración en Tiempo Real:** El backend comunica cualquier actualización de manera instantánea a Odoo, garantizando que el ERP tenga siempre la información verídica.
 
-## 🛠️ Tecnologías Utilizadas
+## Requisitos del Sistema
+* Sistema Operativo: Windows, macOS o Linux.
+* Motor de contenedores: **Docker** y **Docker Compose** instalados.
+* Node.js v18+ (Opcional, solo si se desea ejecutar el frontend fuera de Docker).
+* Python 3.10+ (Opcional, solo si se desea ejecutar el backend fuera de Docker).
+* Puertos libres: `5173` (Frontend), `5000` (Backend), `8069` (Odoo), `5432` (PostgreSQL).
 
-### **Frontend**
-* **Framework:** React 19 + Vite
-* **Estado:** Zustand (Global) + React Context
-* **Formularios & Validación:** React Hook Form + Zod
-* **Estilos:** CSS Modules / Variables Globales
-* **Gráficas:** Recharts
+## Instalación del Proyecto
 
-### **Backend**
-* **Framework:** Flask (Python) con Blueprints para modularización de micro-servicios.
-* **Integración ERP:** Cliente personalizado Odoo JSON-RPC, adaptado para la versión 19.
-* **Pagos:** SDK de Stripe y PayPal integrados en backend y frontend.
-* **Seguridad:** PyJWT, Flask-CORS.
-
-### **Infraestructura**
-* **Contenedores:** Docker & Docker Compose
-* **Base de Datos:** PostgreSQL 16 (Dedicado para Odoo)
-* **ERP:** Instancia de Odoo 19 Oficial.
-
----
-
-## 📂 Estructura del Proyecto
-
-```text
-catalogo-simple1/
-├── backend/               # Servidor Flask (Intermediario a Odoo)
-│   ├── app/               # ── Blueprints, integración API y Odoo (client.py)
-│   ├── odoo_module/       # ── Módulos o addons customizados para cargar en Odoo
-│   ├── Dockerfile         # ── Dockerfile de Python/Flask
-│   └── requirements.txt   # ── Dependencias del backend
-├── frontend/              # Aplicación SPA React
-│   ├── src/               # ── Componentes, páginas, servicios y hooks
-│   ├── Dockerfile         # ── Dockerfile con Nginx/Servidor estático
-│   └── package.json       # ── Dependencias de NPM
-├── docs/                  # Documentación extendida
-├── docker-compose.yml     # Orquestación de contenedores (Frontend, Backend, Odoo, DB)
-└── README.md              # Este archivo
+### Clone de repositorio de github
+Abre tu terminal o consola de comandos y ejecuta:
+```bash
+git clone https://github.com/tu-usuario/catalogo-simple1.git
+cd catalogo-simple1
 ```
 
----
-
-## ⚙️ Requisitos Previos
-
-Asegúrate de tener instalado en tu máquina local:
-- [Docker](https://www.docker.com/get-started) y Docker Compose.
-- (Opcional, para desarrollo local) Node.js v18+ y Python 3.10+
-
----
-
-## 🏃‍♂️ Entorno de Desarrollo Rápido con Docker
-
-La forma más sencilla de levantar la aplicación es utilizando el archivo `docker-compose.yml` provisto, el cual configura:
-1. Una base de datos PostgreSQL.
-2. El contenedor de Odoo 19.
-3. El frontend de React.
-4. El backend de Flask.
-
-### Pasos para iniciar:
-
-1. **Clonar y configurar entorno:**
-   Copia los archivos `.env.example` tanto en la raíz como dentro de la carpeta `/backend/` a un archivo `.env` local, ajustando las claves según tus credenciales de Stripe u Odoo.
-
+### Configuración
+1. En la carpeta raíz del proyecto, asegúrate de tener el archivo `docker-compose.yml`.
+2. Dirígete a la carpeta `/backend` y copia el archivo `.env.example` para crear tu propio archivo `.env`:
    ```bash
-   cp backend/.env.example backend/.env
+   cd backend
+   cp .env.example .env
    ```
+3. Edita el archivo `.env` para configurar tus credenciales de base de datos, Stripe, PayPal, y la URL de la instancia local de Odoo.
 
-2. **Levantar los servicios:**
-   Desde la raíz del proyecto, ejecuta corporizar los contenedores:
-
+### Paso de ejecucion del proyecto paso a paso
+1. Desde la raíz del proyecto (donde se ubica el `docker-compose.yml`), construye y levanta los servicios en segundo plano:
    ```bash
    docker-compose up --build -d
    ```
+2. Espera unos momentos a que los contenedores se inicialicen. Puedes verificar los logs con `docker-compose logs -f`.
+3. Ingresa a `http://localhost:8069` para configurar por primera vez la base de datos de Odoo (nómbrala como se indica en tu `.env`, usualmente `catalogix`).
+4. Una vez la base de datos esté lista, visita `http://localhost:5173` para acceder a la plataforma (Frontend).
 
-3. **Verificar servicios en ejecución:**
-   - **Frontend (Sitio Público y Dashboards):** `http://localhost:5173` o `http://localhost:80` (según tu asignación de mapeos)
-   - **Backend API (Flask):** `http://localhost:5000`
-   - **Odoo Local (ERP Backend):** `http://localhost:8069`
+## Estructura del Proyecto
+```text
+catalogo-simple1/
+├── backend/               # Servidor intermediario Flask (Python)
+│   ├── app/               # Lógica, rutas API y cliente JSON-RPC para Odoo
+│   ├── requirements.txt   # Dependencias de Python
+│   └── .env               # Variables de entorno
+├── frontend/              # Aplicación SPA en React
+│   ├── src/               # Páginas, componentes, hooks y servicios
+│   ├── package.json       # Dependencias de NPM
+│   └── vite.config.js     # Configuración del empaquetador
+├── docker-compose.yml     # Orquestación de contenedores (App, BD, ERP)
+└── README.md              # Documentación principal
+```
 
-*(Nota: En la primera ejecución, deberás configurar una base de datos en `http://localhost:8069` con el nombre `catalogix` e instalar los módulos bases desde Odoo o mediante comandos provistos en la documentación)*
+## Uso del Sistema
+El sistema consta de tres flujos principales:
+1. **Público (Clientes):** Navegación libre por la tienda, adición de productos al carrito y pago sin fricciones.
+2. **Vendedores:** Los usuarios con rol "vendedor" inician sesión para acceder al menú `Catalogix Vendedor`. Desde ahí, gestionan sus productos, configuran su tienda y analizan sus ventas.
+3. **Administradores:** Rol superior que accede a estadísticas globales del negocio, pagos retenidos, reportes contables generales e integración directa con las opciones profundas de Odoo.
 
----
+## Credenciales relevantes
+*(Deberás cambiar estas credenciales en un entorno de producción)*
+* **Odoo Local:** `http://localhost:8069`
+  * Base de datos por defecto: `catalogix`
+  * Usuario/Admin Odoo: (El que definas en la pantalla de inicialización)
+* **Backend API:** `http://localhost:5000`
+* **Frontend:** `http://localhost:5173`
+  * Acceso Administrador (Ejemplo configurado): `gabriel123@gmail.com` / `123456789A`
+  * Acceso Vendedor (Ejemplo configurado): `vendedor123@gmail.com` / `123456789A`
 
-## 🔐 Recuperación de contraseña (Forgot Password)
+## APIs utilizadas (Internas y Externas)
 
-El proyecto incluye pantallas de **Recuperar contraseña** (`/forgot-password`) y **Restablecer contraseña** (`/reset-password?token=...`) y estos endpoints en el backend:
+El ecosistema de Catalogix se integra con múltiples servicios mediante diferentes APIs para ofrecer una experiencia completa y segura. A continuación se detallan tanto la API interna propia como las de terceros:
 
-- `POST /api/auth/forgot-password` (genera token y envía correo si está habilitado)
-- `POST /api/auth/validate-reset-token`
-- `POST /api/auth/reset-password`
+### 1. API Interna (Middleware Flask a Odoo)
+Catalogix no expone la base de datos directamente al Frontend. Utiliza un **Middleware en Flask** que centraliza las peticiones mediante una arquitectura RESTful.
 
-Para que llegue un correo real a tu bandeja:
+**Paso a paso de la implementación:**
+1. **Frontend envía la petición:** La interfaz de React realiza una llamada HTTP (ej. `POST /api/vendor/products`) con los datos del formulario (incluyendo moneda, precios, nombre, imágenes).
+2. **El Middleware intercepta (Flask):** El servidor recibe la llamada, valida los datos y el token JWT de seguridad para confirmar quién es el usuario.
+3. **Comunicación con Odoo (JSON-RPC):** Flask traduce esta petición a un formato comprensible para el ERP y utiliza `odoo.call()` o `odoo.search_read()` para inyectar o leer registros en la base de datos Postgres de Odoo 19 de forma segura.
+4. **Respuesta final:** Odoo retorna el ID del nuevo registro (ej. Producto Creado), el middleware lo transforma a una respuesta amigable (JSON) y el Frontend notifica al usuario con un mensaje de éxito.
 
-- En `backend/.env` activa `SEND_RESET_EMAIL=true`
-- Elige proveedor: `RESET_EMAIL_PROVIDER=smtp` (recomendado) o `RESET_EMAIL_PROVIDER=odoo`
-- Si usas SMTP, configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_USE_TLS/SMTP_USE_SSL` (ver `backend/.env.example`)
+### 2. APIs Externas Integradas
+Para expandir sus funcionalidades transaccionales y de comunicación, el sistema implementa integraciones con las siguientes APIs de terceros:
 
-En desarrollo, si `FLASK_DEBUG=true`, el backend devuelve `reset_url` en la respuesta para que puedas probar sin depender del correo.
+* **Stripe API:** Utilizada para el procesamiento de pagos seguros con tarjeta de crédito y débito directamente en el flujo de checkout.
+* **Meta Cloud API (WhatsApp):** Integrada para facilitar el contacto directo y el envío de mensajes o cotizaciones hacia los números de WhatsApp de los vendedores o administradores.
+* **Google OAuth 2.0 API:** Empleada para gestionar la autenticación de usuarios (Single Sign-On), permitiendo un registro e inicio de sesión rápido y seguro utilizando cuentas de Google.
 
----
+## Autor del desarrollado y Autor de administrador de proyecto
+* **Autor desarrollado:** Gabriel Elias Alcala
+* **Autor administrador de proyecto:** Jose Rijo
 
-## 💬 Integración WhatsApp (Meta Cloud API)
+## Módulos de Odoo implementados
+A continuación, se definen uno por uno los módulos y modelos del ERP gestionados por nuestra aplicación:
 
-Se agregó una integración de WhatsApp basada en clases (OOP) dentro del Backend Flask, con:
-
-- **Env vars** en `backend/.env` (ver `backend/.env.example`).
-- **API para envío** (requiere JWT): `POST /api/whatsapp/messages/text` y `POST /api/whatsapp/messages/template`.
-- **Webhook** de Meta: `GET/POST /api/whatsapp/webhook` (verificación por `WHATSAPP_WEBHOOK_VERIFY_TOKEN`).
-- **Seguridad recomendada**: define `WHATSAPP_APP_SECRET` para validar `X-Hub-Signature-256` en el webhook.
-
-Opcional: `WHATSAPP_NOTIFY_PAYMENTS=true` intenta notificar por WhatsApp cuando Stripe confirma el pago (webhook) de una factura.
-
----
-
-## 🤝 Contribuir
-
-Las sugerencias y mejoras son bienvenidas. Para organizar el trabajo:
-1. Sigue convenciones de nombres estándar en ramas `feature/...` o `bugfix/...`.
-2. Mantén la lógica de visualización (Frontend) separada de la lógica de integración y reglas de negocio (Backend/Odoo).
-3. Escribe hooks o servicios bien documentados si agregas alguna llamada API a Odoo nueva.
+1. **Módulo de Contactos (`res.partner`)**: Se utiliza para almacenar toda la información de los usuarios (Clientes, Vendedores y Administradores). Aquí se manejan roles, credenciales de sesión enlazadas e información de contacto.
+2. **Módulo de Inventario y Catálogo (`product.template`)**: Base de todo el sistema de ventas. Guarda el registro de cada producto subido por el vendedor, controlando su stock disponible, moneda, imágenes, códigos (SKU) y visibilidad en el portal.
+3. **Módulo de Ventas (`sale.order`)**: Orquesta todo el flujo del carrito de compras. Cuando un usuario añade artículos y procesa un checkout, se genera una orden de venta en Odoo vinculando los productos y el cliente.
+4. **Módulo de Facturación (`account.move`)**: Genera las facturas y asientos contables de cada venta realizada. Procesa y registra los estados de pago (ej. pagos por Stripe o en efectivo) manteniendo la contabilidad del sistema centralizada.
+5. **Módulos Multi-Vendedor Personalizados (`catalog.catalog` y `catalog.vendor`)**: Tablas creadas específicamente en Odoo para nuestra plataforma. Permiten agrupar productos bajo colecciones (catálogos) y asocian configuraciones exclusivas (nombres de tienda, balances) para los vendedores individuales.
+6. **Módulo de Monedas (`res.currency`)**: Implementado para asegurar que los productos puedan guardarse y valorarse internacionalmente utilizando identificadores de moneda dinámica (USD, DOP, EUR).

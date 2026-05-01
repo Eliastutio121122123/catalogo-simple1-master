@@ -60,7 +60,7 @@ def main():
     })
     uid = result.get("uid") if result else None
     if not uid:
-        print("   FALLO autenticacion")
+        print(" FALLO autenticacion")
         sys.exit(1)
     print(f"   OK (UID: {uid})")
 

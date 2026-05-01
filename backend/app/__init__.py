@@ -12,38 +12,38 @@ def create_app(config_class=Config):
     _configure_logging(app)
 
     # ── Blueprints ────────────────────────────────────────────────────────────
-    from .api.auth     import bp as auth_bp
-    from .api.catalogs import bp as catalogs_bp
-    from .api.products import bp as products_bp
-    from .api.orders   import bp as orders_bp
-    from .api.payments import bp as payments_bp
-    from .api.users    import bp as users_bp
-    from .api.vendor_coupons import bp as vendor_coupons_bp
-    from .api.vendor_customers import bp as vendor_customers_bp
-    from .api.vendor_invoices import bp as vendor_invoices_bp
-    from .api.vendor_products import bp as vendor_products_bp
-    from .api.vendor_promotions import bp as vendor_promotions_bp
-    from .api.vendor_dashboard import bp as vendor_dashboard_bp
-    from .api.vendor_notifications import bp as vendor_notifications_bp
-    from .api.vendor_orders import bp as vendor_orders_bp
-    from .api.store import bp as store_bp
-    from .api.vendor_catalogs import bp as vendor_catalogs_bp
-    from .api.vendor_profile import bp as vendor_profile_bp
-    from .api.vendor_inventory import bp as vendor_inventory_bp
-    from .api.vendor_pricing import bp as vendor_pricing_bp
-    from .api.vendor_reports import bp as vendor_reports_bp
-    from .api.customer_invoices import bp as customer_invoices_bp
-    from .api.admin_audit import bp as admin_audit_bp
-    from .api.admin_users import bp as admin_users_bp
-    from .api.admin_vendors import bp as admin_vendors_bp
-    from .api.admin_catalogs import bp as admin_catalogs_bp
-    from .api.admin_orders import bp as admin_orders_bp
-    from .api.admin_payments import bp as admin_payments_bp
-    from .api.admin_products import bp as admin_products_bp
-    from .api.admin_dashboard import bp as admin_dashboard_bp
-    from .api.admin_reports import bp as admin_reports_bp
-    from .api.currencies import bp as currencies_bp
-    from .api.whatsapp import bp as whatsapp_bp
+    from .router.auth     import bp as auth_bp
+    from .router.catalogs import bp as catalogs_bp
+    from .router.products import bp as products_bp
+    from .router.orders   import bp as orders_bp
+    from .router.payments import bp as payments_bp
+    from .router.users    import bp as users_bp
+    from .router.vendor_coupons import bp as vendor_coupons_bp
+    from .router.vendor_customers import bp as vendor_customers_bp
+    from .router.vendor_invoices import bp as vendor_invoices_bp
+    from .router.vendor_products import bp as vendor_products_bp
+    from .router.vendor_promotions import bp as vendor_promotions_bp
+    from .router.vendor_dashboard import bp as vendor_dashboard_bp
+    from .router.vendor_notifications import bp as vendor_notifications_bp
+    from .router.vendor_orders import bp as vendor_orders_bp
+    from .router.store import bp as store_bp
+    from .router.vendor_catalogs import bp as vendor_catalogs_bp
+    from .router.vendor_profile import bp as vendor_profile_bp
+    from .router.vendor_inventory import bp as vendor_inventory_bp
+    from .router.vendor_pricing import bp as vendor_pricing_bp
+    from .router.vendor_reports import bp as vendor_reports_bp
+    from .router.customer_invoices import bp as customer_invoices_bp
+    from .router.admin_audit import bp as admin_audit_bp
+    from .router.admin_users import bp as admin_users_bp
+    from .router.admin_vendors import bp as admin_vendors_bp
+    from .router.admin_catalogs import bp as admin_catalogs_bp
+    from .router.admin_orders import bp as admin_orders_bp
+    from .router.admin_payments import bp as admin_payments_bp
+    from .router.admin_products import bp as admin_products_bp
+    from .router.admin_dashboard import bp as admin_dashboard_bp
+    from .router.admin_reports import bp as admin_reports_bp
+    from .router.currencies import bp as currencies_bp
+    from .router.whatsapp import bp as whatsapp_bp
 
     app.register_blueprint(auth_bp,     url_prefix="/api/auth")
     app.register_blueprint(catalogs_bp, url_prefix="/api/catalogs")

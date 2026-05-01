@@ -4,7 +4,7 @@ from .client import odoo
 
 
 class AdminCatalogService:
-    FIELDS = [
+    BASE_FIELDS = [
         "id",
         "name",
         "vendor_id",
@@ -17,20 +17,57 @@ class AdminCatalogService:
     def __init__(self, client):
         self._client = client
 
+    def _fields(self) -> list[str]:
+        fields = list(self.BASE_FIELDS)
+        if "category" not in fields:
+            fields.append("category")
+        return fields
+
+    @staticmethod
+    def _is_invalid_field_error(exc: Exception, field: str) -> bool:
+        msg = str(exc or "")
+        if "invalid field" not in msg.lower():
+            return False
+        return (f"'{field}'" in msg) or (f"\"{field}\"" in msg) or (field in msg)
+
+    @staticmethod
+    def _is_missing_column_error(exc: Exception, field: str) -> bool:
+        msg = str(exc or "").lower()
+        return ("column" in msg and "does not exist" in msg and field.lower() in msg)
+
     # ── Public API ──────────────────────────────────────────────
 
     def get_catalog(self, catalog_id: int) -> dict:
         """Return full details for a single catalog record."""
-        rows = self._client.call(
-            "catalog.catalog",
-            "search_read",
-            [[["id", "=", catalog_id]]],
-            {
-                "fields": self.FIELDS + ["description"],
-                "limit": 1,
-                "context": {"active_test": False},
-            },
-        ) or []
+        fields = self._fields() + ["description"]
+        try:
+            rows = self._client.call(
+                "catalog.catalog",
+                "search_read",
+                [[["id", "=", catalog_id]]],
+                {
+                    "fields": fields,
+                    "limit": 1,
+                    "context": {"active_test": False},
+                },
+            ) or []
+        except Exception as exc:
+            if "category" in fields and (
+                self._is_invalid_field_error(exc, "category") or self._is_missing_column_error(exc, "category")
+            ):
+                safe_fields = [f for f in fields if f != "category"]
+                rows = self._client.call(
+                    "catalog.catalog",
+                    "search_read",
+                    [[["id", "=", catalog_id]]],
+                    {
+                        "fields": safe_fields,
+                        "limit": 1,
+                        "context": {"active_test": False},
+                    },
+                ) or []
+            else:
+                raise
         if not rows:
             return {}
         return self._to_api(rows[0])
@@ -40,6 +77,9 @@ class AdminCatalogService:
         write_vals: dict = {}
         if "name" in data and data["name"]:
             write_vals["name"] = str(data["name"]).strip()
+        if "category" in data and "category" in self._fields():
+            category = str(data.get("category") or "").strip()
+            write_vals["category"] = category or False
         if "active" in data:
             write_vals["active"] = bool(data["active"])
         if "description" in data:
@@ -62,7 +102,17 @@ class AdminCatalogService:
         offset: int = 0,
     ) -> dict:
         domain = self._build_domain(q, status, visibility)
-        rows = self._client.search_read("catalog.catalog", domain, self.FIELDS, limit=limit, offset=offset, order="id desc")
+        fields = self._fields()
+        try:
+            rows = self._client.search_read("catalog.catalog", domain, fields, limit=limit, offset=offset, order="id desc")
+        except Exception as exc:
+            if "category" in fields and (
+                self._is_invalid_field_error(exc, "category") or self._is_missing_column_error(exc, "category")
+            ):
+                safe_fields = [f for f in fields if f != "category"]
+                rows = self._client.search_read("catalog.catalog", domain, safe_fields, limit=limit, offset=offset, order="id desc")
+            else:
+                raise
         items = [self._to_api(row) for row in rows]
         stats = self._stats(items)
         filters = self._filters(items)
@@ -102,6 +152,7 @@ class AdminCatalogService:
             "id": f"CAT-{cid}",
             "rawId": cid,
             "name": rec.get("name") or "-",
+            "category": rec.get("category") or "",
             "vendor": vendor[1] if isinstance(vendor, list) and len(vendor) > 1 else "-",
             "vendorId": int(vendor[0]) if isinstance(vendor, list) and vendor else 0,
             "items": int(rec.get("product_count") or 0),

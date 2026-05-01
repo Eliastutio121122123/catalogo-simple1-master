@@ -118,8 +118,8 @@ const buildCatalogView = (row, idx) => {
     vendor: vendorName,
     vendorAvatar: getInitials(vendorName),
     category: row.category || "General",
-    rating: row.product_count ? 4.7 : 0,
-    reviews: row.product_count ? Math.min(999, Number(row.product_count) * 6) : 0,
+    rating: Number(row.rating ?? (row.product_count ? 4.7 : 0)),
+    reviews: Number(row.reviews ?? (row.product_count ? Math.min(999, Number(row.product_count) * 6) : 0)),
     cover,
     accent: palette.accent,
     verified: !!row.vendor_id,
@@ -139,8 +139,9 @@ const buildProductView = (row, idx) => {
     original: row.original_price ? Number(row.original_price) : null,
     category: (Array.isArray(row.categ_id) && row.categ_id[1]) || "General",
     stock,
-    rating: stock > 0 ? 4.6 : 0,
-    sales: 0,
+    rating: Number(row.rating ?? 0),
+    reviews: Number(row.reviews ?? 0),
+    sales: Number(row.sales ?? 0),
     tag: stock <= 5 && stock > 0 ? "Pocas unidades" : stock === 0 ? "Agotado" : null,
     color: PRODUCT_PALETTE[idx % PRODUCT_PALETTE.length],
     image,
@@ -209,6 +210,7 @@ function ProductCard({ product, onAdd, added, index, onOpen }) {
             </span>
           ))}
           <span className="prod-rating-num">{product.rating}</span>
+          {product.reviews > 0 && <span className="prod-rating-rev">({product.reviews})</span>}
           <span className="prod-sales">· {product.sales} vendidos</span>
         </div>
         <div className="prod-price-row">
@@ -652,6 +654,7 @@ export default function CatalogDetail() {
         }
         .prod-rating { display: flex; align-items: center; gap: 2px; margin-bottom: 10px; }
         .prod-rating-num { font-size: 12px; font-weight: 800; color: var(--slate-800); margin-left: 4px; }
+        .prod-rating-rev { font-size: 11px; color: var(--slate-400); margin-left: 3px; }
         .prod-sales { font-size: 11px; color: var(--slate-400); margin-left: 2px; }
         .prod-price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
         .prod-price { font-family: 'Lexend', sans-serif; font-size: 18px; font-weight: 800; color: var(--slate-900); }

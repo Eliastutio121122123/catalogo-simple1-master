@@ -311,6 +311,7 @@ export default function Catalogs() {
     try {
       await vendorCatalogService.create({
         name: `${cat.name} (copia)`,
+        category: cat.category || "",
         description: cat.description || "",
         status: "draft",
       });
