@@ -10,7 +10,12 @@ const statusMap = {
   cancel: "cancelled",
 };
 
-function mapOrderStatus(state) {
+const REF_OVERRIDES = new Set(["processing", "shipped", "delivered", "cancelled"]);
+
+function mapOrderStatus(state, clientRef) {
+  // Vendor stores explicit status in client_order_ref — trust it over Odoo state
+  const ref = String(clientRef || "").toLowerCase().trim();
+  if (REF_OVERRIDES.has(ref)) return ref;
   return statusMap[String(state || "").toLowerCase()] || "processing";
 }
 
@@ -71,7 +76,7 @@ function normalizeAvatarUrl(raw) {
 }
 
 function mapOrderRow(raw) {
-  const status = mapOrderStatus(raw.state);
+  const status = mapOrderStatus(raw.state, raw.client_order_ref);
   return {
     id: Number(raw.id),
     code: raw.name || `SO-${raw.id}`,
@@ -81,6 +86,7 @@ function mapOrderRow(raw) {
     items: Array.isArray(raw.order_line) ? raw.order_line.length : 0,
     payment: "card",
     rawState: raw.state,
+    clientRef: raw.client_order_ref || "",
   };
 }
 

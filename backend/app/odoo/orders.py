@@ -4,6 +4,7 @@ ORDER_FIELDS = [
     "id",
     "name",
     "state",
+    "client_order_ref",
     "amount_total",
     "partner_id",
     "date_order",
