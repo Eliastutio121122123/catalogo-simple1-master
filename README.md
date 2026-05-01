@@ -158,7 +158,7 @@ Para lograr el soporte de Multi-Vendor, se explotan y modifican ciertos modelos 
 
 ### Paso 1: Clonar y Preparar el Entorno
 ```bash
-git clone https://github.com/tu-usuario/catalogo-simple1.git
+git clone https://github.com/Eliastutio121122123/catalogo-simple1-master.git
 cd catalogo-simple1
 ```
 
