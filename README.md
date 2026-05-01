@@ -177,9 +177,19 @@ docker-compose up --build -d
 Esto descargará la imagen de PostgreSQL 16 y la oficial de Odoo 19, además de construir los contenedores de Node (Vite) y Python (Gunicorn).
 
 ### Paso 4: Inicialización de Odoo
-Abre `http://localhost:8069`. El sistema de Odoo requerirá crear la base de datos maestra.
-**Nombre de BD:** `catalogix` (Debe coincidir con la variable ODOO_DB de tu backend).
-Al crearla, instala los módulos base de E-commerce, Facturación y Ventas desde la sección de "Aplicaciones" de Odoo.
+Abre `http://localhost:8069`. El sistema de Odoo requerirá crear la base de datos maestra. Completa el formulario con los siguientes datos:
+
+| Campo              | Valor recomendado                          |
+|--------------------|--------------------------------------------|
+| **Nombre de BD**   | `catalogix` *(debe coincidir con `ODOO_DB` en tu `.env`)* |
+| **Email / Usuario**| `admin@catalogix.com`                      |
+| **Contraseña**     | `admin` *(cámbiala en producción)*         |
+| **Idioma**         | Español (España o Latinoamérica)           |
+| **País**           | República Dominicana                       |
+
+> ⚠️ **Importante:** Guarda el email y la contraseña que ingreses aquí, ya que son las mismas credenciales que debes configurar en las variables `ODOO_USER` y `ODOO_PASSWORD` del archivo `.env` del backend.
+
+Al crearla, instala los módulos base de **E-commerce**, **Facturación** y **Ventas** desde la sección de "Aplicaciones" de Odoo.
 
 ### Paso 5: Script de Auto-Configuración
 Para evitar configurar cuentas contables y monedas manualmente en Odoo, puedes ejecutar el script Python provisto:
