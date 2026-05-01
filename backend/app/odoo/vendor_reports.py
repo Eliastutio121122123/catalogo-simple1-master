@@ -78,7 +78,7 @@ class VendorReportService:
             ["product_id", "in", product_ids],
             ["order_id.date_order", ">=", period.start_dt()],
             ["order_id.date_order", "<=", period.end_dt()],
-            ["order_id.state", "in", ["draft", "sent", "sale", "done"]],
+            ["order_id.state", "not in", ["cancel"]],
         ]
 
         lines = self._client.search_read(

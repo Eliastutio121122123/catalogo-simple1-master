@@ -389,7 +389,7 @@ export default function Home() {
             <button className="see-all" onClick={goCatalogs}>Ver todos <IconArrow /></button>
           </div>
           <div className="catalog-grid">
-            {featuredCatalogs.map(c => (
+            {featuredCatalogs.slice(0, 4).map(c => (
               <div key={c.id} className="catalog-card" onClick={() => goCatalog(c.slug || c.id)}>
                 <div className="catalog-banner" style={{ background: `linear-gradient(135deg,${c.color}22,${c.color}44)` }}>
                   {c.imageUrl ? (

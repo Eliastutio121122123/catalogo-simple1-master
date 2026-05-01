@@ -5,6 +5,7 @@ from xmlrpc.client import Fault
 from ..middleware.auth_guard import jwt_required
 from ..odoo.admin_products import admin_product_service
 from ..utils.response import error, success
+from ..utils.audit_writer import log_event
 
 
 class AdminProductsBase(MethodView):
@@ -56,15 +57,32 @@ class AdminProductDetailAPI(AdminProductsBase):
             return error(str(exc), 500)
 
     def put(self, product_id: int):
+        uid = getattr(request, "jwt_payload", {}).get("uid", "unknown")
         try:
             data = request.get_json(force=True, silent=True) or {}
             updated = self._service.update_product(product_id, data)
             if not updated:
                 return error("Producto no encontrado.", 404)
+            log_event(
+                "ADMIN_PRODUCT_UPDATED",
+                target=f"product:{product_id}",
+                actor_name=f"uid:{uid}",
+                actor_role="admin",
+                severity="medium",
+                status="ok",
+            )
             return success(updated)
         except Exception as exc:
             if self._is_model_missing(exc):
                 return error("Odoo model product.template missing.", 503)
+            log_event(
+                "ADMIN_PRODUCT_UPDATE_FAILED",
+                target=f"product:{product_id}",
+                actor_name=f"uid:{uid}",
+                actor_role="admin",
+                severity="high",
+                status="warn",
+            )
             return error(str(exc), 500)
 
 

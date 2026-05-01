@@ -19,6 +19,7 @@ from ..odoo.users import (
 )
 from ..utils.response import error, success
 from ..utils.validators import require_fields
+from ..utils.audit_writer import log_event
 
 bp = Blueprint("auth", __name__)
 
@@ -158,10 +159,34 @@ def login():
         user = get_user_by_id(result["uid"])
         token = issue_jwt(result["uid"], partner_id=partner_id or _partner_id_from_user(user))
         refresh_token = issue_refresh_token(result["uid"])
+        log_event(
+            "LOGIN_SUCCESS",
+            target=f"user:{login_id}",
+            actor_name=user.get("name") or login_id,
+            actor_role=user.get("role") or "customer",
+            severity="low",
+            status="ok",
+        )
         return success({"token": token, "refresh_token": refresh_token, "user": user})
     except PermissionError:
+        log_event(
+            "LOGIN_FAILED",
+            target=f"user:{login_id}",
+            actor_name=login_id,
+            actor_role="unknown",
+            severity="high",
+            status="blocked",
+        )
         return error("Invalid email or password", 401)
     except LookupError as exc:
+        log_event(
+            "LOGIN_FAILED",
+            target=f"user:{login_id}",
+            actor_name=login_id,
+            actor_role="unknown",
+            severity="medium",
+            status="warn",
+        )
         return error(str(exc), 404)
 
 
@@ -193,8 +218,24 @@ def register():
         if role == "vendor":
             UserService.resolve_partner_id(uid)
         user = get_user_by_id(uid)
+        log_event(
+            "USER_REGISTERED",
+            target=f"user:{email}",
+            actor_name=name,
+            actor_role=role,
+            severity="low",
+            status="ok",
+        )
         return success({"uid": uid, "user": user}, 201)
     except UserAlreadyExistsError as exc:
+        log_event(
+            "REGISTER_DUPLICATE",
+            target=f"user:{email}",
+            actor_name=name,
+            actor_role=role,
+            severity="medium",
+            status="warn",
+        )
         return error(str(exc), 409)
     except PermissionError as exc:
         return error(str(exc), 403)
@@ -276,6 +317,14 @@ def google_signin():
 @bp.post("/logout")
 def logout():
     # JWT is stateless: logout is handled on the client by deleting token.
+    log_event(
+        "LOGOUT",
+        target="session",
+        actor_name="authenticated_user",
+        actor_role="user",
+        severity="low",
+        status="ok",
+    )
     return success({"message": "Logged out"})
 
 
@@ -394,13 +443,45 @@ def reset_password():
     try:
         uid, _ = parse_reset_token(str(data["token"]))
     except jwt.ExpiredSignatureError:
+        log_event(
+            "PASSWORD_RESET_EXPIRED",
+            target="reset_token",
+            actor_name="unknown",
+            actor_role="user",
+            severity="medium",
+            status="blocked",
+        )
         return error("Reset token expired", 401)
     except jwt.InvalidTokenError:
+        log_event(
+            "PASSWORD_RESET_INVALID_TOKEN",
+            target="reset_token",
+            actor_name="unknown",
+            actor_role="user",
+            severity="high",
+            status="blocked",
+        )
         return error("Invalid reset token", 401)
 
     try:
         update_user(uid, {"password": password})
+        log_event(
+            "PASSWORD_RESET_SUCCESS",
+            target=f"user:{uid}",
+            actor_name=f"uid:{uid}",
+            actor_role="user",
+            severity="medium",
+            status="ok",
+        )
     except Exception as exc:
+        log_event(
+            "PASSWORD_RESET_FAILED",
+            target=f"user:{uid}",
+            actor_name=f"uid:{uid}",
+            actor_role="user",
+            severity="high",
+            status="warn",
+        )
         return error(f"No se pudo actualizar la contraseña: {exc}", 500)
     return success({"message": "Password updated successfully"})
 

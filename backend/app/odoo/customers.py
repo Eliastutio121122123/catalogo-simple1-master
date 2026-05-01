@@ -8,16 +8,30 @@ ORDER_FIELDS = ["id", "partner_id", "amount_total", "date_order", "state"]
 class VendorCustomerService:
     @staticmethod
     def _vendor_product_ids(partner_id: int) -> list[int]:
+        """Return product.product (variant) IDs owned by this vendor.
+
+        sale.order.line.product_id references product.product, NOT product.template.
+        Previous bug: was returning product.template IDs → no orders matched.
+        """
         catalog_ids = odoo.search("catalog.catalog", [["vendor_id", "=", partner_id]])
         if not catalog_ids:
             return []
-        return odoo.search("product.template", [["catalog_id", "in", catalog_ids]])
+        template_ids = odoo.search("product.template", [["catalog_id", "in", catalog_ids]])
+        if not template_ids:
+            return []
+        return odoo.search("product.product", [["product_tmpl_id", "in", template_ids]])
 
     @staticmethod
     def _orders_for_products(product_ids: list[int]) -> list[dict]:
         if not product_ids:
             return []
-        line_ids = odoo.search("sale.order.line", [["product_id", "in", product_ids]])
+        line_ids = odoo.search(
+            "sale.order.line",
+            [
+                ["product_id", "in", product_ids],
+                ["order_id.state", "not in", ["cancel"]],
+            ],
+        )
         if not line_ids:
             return []
         lines = odoo.read("sale.order.line", line_ids, ["order_id"])
@@ -69,7 +83,10 @@ class VendorCustomerService:
         if search:
             term = search.strip()
             if term:
-                domain = ["&", ["id", "in", partner_ids], "|", ["name", "ilike", term], ["email", "ilike", term]]
+                domain = [
+                    "&", ["id", "in", partner_ids],
+                    "|", ["name", "ilike", term], ["email", "ilike", term],
+                ]
 
         partners = odoo.search_read("res.partner", domain, PARTNER_FIELDS, limit=1000)
         enriched = []
@@ -90,4 +107,3 @@ class VendorCustomerService:
             if int(customer.get("id") or 0) == int(customer_id):
                 return customer
         raise LookupError("Customer not found for vendor")
-
