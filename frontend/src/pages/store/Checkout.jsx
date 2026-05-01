@@ -69,8 +69,6 @@ const checkoutItemAdapter = new CheckoutItemAdapter();
 
 class PaymentStatusResolver {
   statusFromResponse(res) {
-    const method = String(res?.payment?.method || "").toLowerCase();
-    if (method === "cash") return "cod";
     const status = res?.payment?.status;
     if (status) return status;
     const paymentState = String(res?.invoice?.payment_state || "").toLowerCase();
@@ -99,7 +97,6 @@ const STEPS = [
 
 const PAYMENT_METHODS = [
   { id: "stripe", label: "Tarjeta y wallets (Stripe)", sub: "Visa, MC, Apple Pay, Google Pay", icon: "💳" },
-  { id: "cash",   label: "Pago contra entrega",        sub: "Monto exacto al recibir",         icon: "💵" },
 ];
 
 const PROVINCES = ["Distrito Nacional","Santiago","La Romana","San Pedro de Macorís","Santo Domingo","La Vega","Duarte","Espaillat","Puerto Plata","Barahona","San Cristóbal","San Juan","Azua","Bahoruco","Dajabón","El Seibo","Elías Piña","Hato Mayor","Independencia","La Altagracia","María Trinidad Sánchez","Monseñor Nouel","Monte Cristi","Monte Plata","Pedernales","Peravia","Samaná","Sánchez Ramírez","Valverde"];
@@ -533,24 +530,18 @@ export default function Checkout({ orderItems }) {
                     <Ico.Lock />
                     <span className="info-box-txt">Todos los pagos están cifrados con SSL de 256 bits. Tu información financiera está completamente segura.</span>
                   </div>
-                  <div className="pay-grid">
-  {PAYMENT_METHODS.map(m => (
-    <div key={m.id} className={`pay-opt${payMethod===m.id?" active":""}`} onClick={()=>setPayMethod(m.id)}>
-      <span className="pay-ico">{m.icon}</span>
-      <div><div className="pay-lbl">{m.label}</div><div className="pay-sub">{m.sub}</div></div>
-      <div className="pay-radio">{payMethod===m.id && <div className="pay-radio-dot"/>}</div>
-    </div>
-  ))}
-</div>
-{payMethod !== "card" && (
-  <div className="info-box" style={{ marginTop:8 }}>
-    <Ico.Alert />
-    <span className="info-box-txt">
-      {payMethod==="stripe" && "Serás redirigido a Stripe para completar tu pago de forma segura con tarjeta o wallets."}
-      {payMethod==="cash"   && "Deberás tener el monto exacto listo al momento de recibir tu pedido."}
-    </span>
-  </div>
-)}
+                  <div className="pay-only">
+                    <span className="pay-ico" style={{ fontSize: 32 }}>💳</span>
+                    <div>
+                      <div className="pay-lbl" style={{ fontSize: 15 }}>Tarjeta y wallets (Stripe)</div>
+                      <div className="pay-sub">Visa, Mastercard, Apple Pay, Google Pay</div>
+                    </div>
+                    <div className="pay-badge">✓ Activo</div>
+                  </div>
+                  <div className="info-box" style={{ marginTop: 16 }}>
+                    <Ico.Alert />
+                    <span className="info-box-txt">Serás redirigido a Stripe para completar tu pago de forma segura con tarjeta o wallets.</span>
+                  </div>
                 </div>
                 <div className="panel-foot">
                   <button className="btn-prev" onClick={prevStep}><Ico.ArrowLeft /> Regresar</button>
@@ -594,10 +585,7 @@ export default function Checkout({ orderItems }) {
                   <div className="rev-section">
                     <div className="rev-title">Método de pago <button className="rev-edit" onClick={()=>setStep(2)}><Ico.Edit /> Editar</button></div>
                     <div className="rev-box">
-                      <div className="rev-row"><span className="rev-lbl">Método</span><span className="rev-val">{PAYMENT_METHODS.find(m=>m.id===payMethod)?.label}</span></div>
-                      {payMethod==="card" && card.number && (
-                        <div className="rev-row"><span className="rev-lbl">Tarjeta</span><span className="rev-val">•••• {card.number.replace(/\s/g,"").slice(-4)}</span></div>
-                      )}
+                      <div className="rev-row"><span className="rev-lbl">Método</span><span className="rev-val">Tarjeta y wallets (Stripe)</span></div>
                     </div>
                   </div>
                 </div>
@@ -790,17 +778,11 @@ export default function Checkout({ orderItems }) {
         textarea.f-input{padding-left:14px;resize:none;line-height:1.5;}
 
         /* Payment */
-        .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-        @media(max-width:480px){.pay-grid{grid-template-columns:1fr;}}
-        .pay-opt{display:flex;align-items:center;gap:10px;padding:12px 15px;border:1.5px solid var(--s2);border-radius:13px;cursor:pointer;transition:all .18s;background:var(--s0);}
-        .pay-opt:hover{border-color:var(--b4);background:var(--b0);}
-        .pay-opt.active{border-color:var(--b6);background:var(--b0);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+        .pay-only{display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--b6);border-radius:14px;background:var(--b0);box-shadow:0 0 0 3px rgba(37,99,235,.08);margin-bottom:0;}
         .pay-ico{font-size:22px;line-height:1;}
         .pay-lbl{font-size:13px;font-weight:700;color:var(--s7);}
-        .pay-sub{font-size:11px;color:var(--s4);margin-top:1px;}
-        .pay-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--s3);display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0;transition:all .18s;}
-        .pay-opt.active .pay-radio{border-color:var(--b6);background:var(--b6);}
-        .pay-radio-dot{width:7px;height:7px;border-radius:50%;background:white;}
+        .pay-sub{font-size:11px;color:var(--s4);margin-top:2px;}
+        .pay-badge{margin-left:auto;background:var(--b6);color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 
         /* Card preview */
         .cf-preview{height:140px;border-radius:16px;padding:20px 22px;background:linear-gradient(135deg,#1e40af 0%,#0891b2 100%);position:relative;overflow:hidden;margin-bottom:22px;box-shadow:0 8px 28px rgba(29,78,216,.35);}
