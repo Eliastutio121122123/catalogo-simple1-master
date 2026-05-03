@@ -190,6 +190,9 @@ def login():
         return error(str(exc), 404)
 
 
+GMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+\-]+@gmail\.com$")
+
+
 @bp.post("/register")
 def register():
     data = request.get_json() or {}
@@ -197,21 +200,30 @@ def register():
     if err:
         return error(err, 400)
 
-    name = str(data["name"]).strip()
-    email = normalize_email(data["email"])
+    name    = str(data["name"]).strip()
+    email   = normalize_email(data["email"])
     password = str(data["password"])
-    role = str(data.get("role") or "customer").strip().lower()
-    phone = str(data.get("phone") or "").strip() or None
+    role    = str(data.get("role") or "customer").strip().lower()
+    phone   = str(data.get("phone") or "").strip() or None
     company = str(data.get("company") or "").strip() or None
 
+    # ── Validaciones de negocio ─────────────────────────────────────────────
     if len(name) < 2:
         return error("Name must have at least 2 characters", 400)
-    if not EMAIL_REGEX.match(email):
-        return error("Invalid email format", 400)
+
+    # Exclusividad Gmail
+    if not GMAIL_REGEX.match(email):
+        return error("Solo se permiten cuentas de @gmail.com", 400)
+
     if len(password) < 8:
         return error("Password must have at least 8 characters", 400)
+
     if role not in {"customer", "vendor"}:
         return error("Invalid role. Allowed: customer, vendor", 400)
+
+    # Límite de teléfono: máx 15 caracteres (E.164)
+    if phone and len(phone) > 15:
+        return error("El teléfono no puede exceder los 15 caracteres", 400)
 
     try:
         uid = create_user(name, email, password, role=role, phone=phone, company=company)
@@ -226,7 +238,63 @@ def register():
             severity="low",
             status="ok",
         )
-        return success({"uid": uid, "user": user}, 201)
+
+        # ── Correo de verificación ──────────────────────────────────────────
+        email_sent   = False
+        verify_token = issue_purpose_token(uid, "verify_email", minutes=1440)  # 24 h
+        verify_url   = f"{current_app.config['FRONTEND_URL']}/verify-email?code={verify_token}"
+
+        if current_app.config.get("SEND_RESET_EMAIL"):
+            try:
+                email_from = str(
+                    current_app.config.get("RESET_EMAIL_FROM")
+                    or current_app.config.get("SMTP_USER")
+                    or ""
+                )
+                html_body = (
+                    f"<p>Hola {name or 'usuario'},</p>"
+                    "<p>Gracias por registrarte en <strong>Catalogix</strong>.</p>"
+                    "<p>Para activar tu cuenta haz clic en el siguiente enlace "
+                    "<strong>(válido por 24 horas)</strong>:</p>"
+                    f"<p><a href='{verify_url}' "
+                    "style='display:inline-block;background:#2563eb;color:#fff;"
+                    "padding:12px 28px;border-radius:8px;text-decoration:none;"
+                    "font-weight:700;font-size:15px;'>Verificar mi correo</a></p>"
+                    f"<p style='font-size:12px;color:#888;'>O copia esta URL: {verify_url}</p>"
+                    "<p>Si no creaste esta cuenta, ignora este mensaje.</p>"
+                )
+                text_body = (
+                    f"Hola {name or 'usuario'},\n\n"
+                    "Gracias por registrarte en Catalogix.\n\n"
+                    f"Verifica tu cuenta en: {verify_url}\n\n"
+                    "Si no creaste esta cuenta, ignora este mensaje.\n"
+                )
+                send_email_smtp(
+                    host=str(current_app.config.get("SMTP_HOST") or ""),
+                    port=int(current_app.config.get("SMTP_PORT") or 587),
+                    username=str(current_app.config.get("SMTP_USER") or "") or None,
+                    password=str(current_app.config.get("SMTP_PASSWORD") or "") or None,
+                    use_tls=bool(current_app.config.get("SMTP_USE_TLS")),
+                    use_ssl=bool(current_app.config.get("SMTP_USE_SSL")),
+                    timeout_seconds=int(current_app.config.get("SMTP_TIMEOUT_SECONDS") or 20),
+                    email_from=email_from,
+                    email_to=email,
+                    subject="Catalogix – Verifica tu cuenta",
+                    text_body=text_body,
+                    html_body=html_body,
+                    from_name="Catalogix",
+                )
+                email_sent = True
+            except Exception:
+                current_app.logger.exception("Failed to send verification email to %s", email)
+
+        response: dict = {"uid": uid, "user": user, "email_sent": email_sent}
+        if current_app.config.get("DEBUG"):
+            response["verify_token"] = verify_token
+            response["verify_url"]   = verify_url
+
+        return success(response, 201)
+
     except UserAlreadyExistsError as exc:
         log_event(
             "REGISTER_DUPLICATE",

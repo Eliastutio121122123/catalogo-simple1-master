@@ -19,6 +19,7 @@ def send_email_smtp(
     text_body: str,
     html_body: str | None = None,
     from_name: str | None = None,
+    bcc: str | None = None,          # BCC address (hidden copy)
 ) -> None:
     if not host:
         raise ValueError("SMTP_HOST is required to send emails via SMTP")
@@ -36,6 +37,7 @@ def send_email_smtp(
     msg["Subject"] = subject
     msg["From"] = formataddr((from_name, email_from)) if from_name else email_from
     msg["To"] = email_to
+    # BCC is intentionally NOT added to headers (that's the whole point of BCC)
     msg.set_content(text_body)
     if html_body:
         msg.add_alternative(html_body, subtype="html")
@@ -58,7 +60,11 @@ def send_email_smtp(
                     "SMTP authentication failed. Verify SMTP_USER/SMTP_PASSWORD. "
                     "For Gmail, this usually means you need an App Password."
                 ) from exc
-        client.send_message(msg)
+        # Build recipient list: primary To + optional BCC
+        recipients = [email_to]
+        if bcc and bcc.strip() and bcc.strip() != email_to:
+            recipients.append(bcc.strip())
+        client.send_message(msg, to_addrs=recipients)
     finally:
         try:
             client.quit()

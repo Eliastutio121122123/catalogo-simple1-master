@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, request
+from flask import Blueprint, request
 from flask.views import MethodView
 
 from ..middleware.auth_guard import jwt_required
@@ -106,11 +106,14 @@ class VendorOrderNotifyAPI(MethodView):
                     try:
                         from flask import current_app
                         from ..utils.emailer import send_email_smtp
-                        
+
                         host = current_app.config.get("SMTP_HOST")
                         if not host:
                             raise RuntimeError("SMTP_HOST not configured")
-                            
+
+                        # BCC: envía copia silenciosa al vendedor/admin
+                        vendor_bcc = current_app.config.get("VENDOR_NOTIFY_BCC") or None
+
                         send_email_smtp(
                             host=host,
                             port=int(current_app.config.get("SMTP_PORT", 587)),
@@ -123,7 +126,8 @@ class VendorOrderNotifyAPI(MethodView):
                             email_to=to_email,
                             subject=f"Actualización de tu pedido: {order.get('id')}",
                             text_body=body,
-                            from_name="Sistema de Ventas"
+                            from_name="Sistema de Ventas",
+                            bcc=vendor_bcc,
                         )
                         results["email"] = {"status": "success", "to": to_email}
                     except Exception as exc:

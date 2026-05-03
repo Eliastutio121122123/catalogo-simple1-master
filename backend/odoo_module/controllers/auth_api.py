@@ -49,28 +49,41 @@ class CatalogixAuthController(http.Controller):
         if err:
             return error(err, 400)
 
-        name = str(data.get("name") or "").strip()
-        email = str(data.get("email") or "").strip().lower()
+        name     = str(data.get("name")     or "").strip()
+        email    = str(data.get("email")    or "").strip().lower()
         password = str(data.get("password") or "")
-        role = str(data.get("role") or "customer").strip().lower()
-        phone = str(data.get("phone") or "").strip() or None
-        company = str(data.get("company") or "").strip() or None
+        role     = str(data.get("role")     or "customer").strip().lower()
+        phone    = str(data.get("phone")    or "").strip() or None
+        company  = str(data.get("company")  or "").strip() or None
 
+        # ── Validaciones de negocio (Backend) ──────────────────────────────
         if len(name) < 2:
             return error("Name must have at least 2 characters", 400)
+
         if len(password) < 8:
             return error("Password must have at least 8 characters", 400)
 
+        # Exclusividad Gmail: el correo debe terminar estrictamente en @gmail.com
+        import re
+        if not re.fullmatch(r"[a-zA-Z0-9._%+\-]+@gmail\.com", email):
+            return error("Only @gmail.com accounts are accepted", 400)
+
+        # Límite de teléfono: máximo 15 caracteres (estándar internacional E.164)
+        if phone and len(phone) > 15:
+            return error("Phone number must not exceed 15 characters", 400)
+
+        # ── Verificar duplicados ────────────────────────────────────────────
         users = request.env["res.users"].sudo()
         existing = users.search(["|", ("login", "=", email), ("email", "=", email)], limit=1)
         if existing:
             return error("Email is already registered", 409)
 
+        # ── Crear usuario ───────────────────────────────────────────────────
         group_ids = resolve_role_groups(role)
         vals = {
-            "name": name,
-            "login": email,
-            "email": email,
+            "name":     name,
+            "login":    email,
+            "email":    email,
             "password": password,
         }
         if phone:
@@ -82,7 +95,58 @@ class CatalogixAuthController(http.Controller):
             user = users.create(vals)
             if company:
                 user.partner_id.write({"company_name": company})
-            return ok({"uid": user.id, "user": serialize_user(user)}, 201)
+
+            # ── Correo de verificación ──────────────────────────────────────
+            # Generamos un token JWT de propósito "verify_email" (expira en 24h)
+            verify_token = issue_purpose_token(user.id, "verify_email", minutes=1440)
+            verify_url   = f"{_frontend_url()}/verify-email?code={verify_token}"
+
+            email_sent = False
+            if _send_reset_email_enabled():
+                try:
+                    mail = request.env["mail.mail"].sudo().create({
+                        "subject":    "Catalogix – Verifica tu cuenta",
+                        "email_to":   email,
+                        "email_from": _reset_email_from(),
+                        "body_html": (
+                            f"<p>Hola {user.name or 'usuario'},</p>"
+                            "<p>Gracias por registrarte en <strong>Catalogix</strong>.</p>"
+                            "<p>Para activar tu cuenta haz clic en el siguiente enlace "
+                            "(válido por 24 horas):</p>"
+                            f"<p><a href='{verify_url}' "
+                            f"style='background:#2563eb;color:#fff;padding:12px 24px;"
+                            f"border-radius:8px;text-decoration:none;font-weight:700;'>"
+                            f"Verificar mi correo</a></p>"
+                            f"<p>O copia y pega esta URL en tu navegador:<br/>"
+                            f"<small>{verify_url}</small></p>"
+                            "<p>Si no creaste esta cuenta, ignora este mensaje.</p>"
+                        ),
+                    })
+                    mail.send()
+                    email_sent = True
+                except Exception as exc:
+                    # El usuario se creó; el error de correo no debe revertir el registro.
+                    if _debug_enabled():
+                        return ok({
+                            "uid":        user.id,
+                            "user":       serialize_user(user),
+                            "email_sent": False,
+                            "email_error": str(exc),
+                            "verify_url": verify_url,
+                        }, 201)
+
+            response_payload = {
+                "uid":        user.id,
+                "user":       serialize_user(user),
+                "email_sent": email_sent,
+            }
+            # En modo debug exponemos el token/URL para facilitar las pruebas
+            if _debug_enabled() or not _send_reset_email_enabled():
+                response_payload["verify_token"] = verify_token
+                response_payload["verify_url"]   = verify_url
+
+            return ok(response_payload, 201)
+
         except Exception as exc:
             return error(str(exc), 500)
 

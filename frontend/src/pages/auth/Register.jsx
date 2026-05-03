@@ -32,28 +32,44 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError("");
-    if (!form.name.trim())                    { setError("El nombre es obligatorio"); return; }
-    if (!form.email.trim())                   { setError("El correo es obligatorio"); return; }
-    if (!/\S+@\S+\.\S+/.test(form.email))     { setError("Ingresa un correo válido"); return; }
-    if (!form.password)                       { setError("La contraseña es obligatoria"); return; }
-    if (!pwdStrong)                           { setError("La contraseña no cumple los requisitos"); return; }
-    if (form.password !== form.confirm)       { setError("Las contraseñas no coinciden"); return; }
-    if (!agreed)                              { setError("Debes aceptar los términos y condiciones"); return; }
+
+    // ── Validaciones de Frontend ────────────────────────────────────────────
+    if (!form.name.trim())
+      { setError("El nombre es obligatorio"); return; }
+
+    if (!form.email.trim())
+      { setError("El correo es obligatorio"); return; }
+
+    // Exclusividad Gmail: solo se permiten cuentas @gmail.com
+    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(form.email.toLowerCase()))
+      { setError("Solo se permiten cuentas de @gmail.com"); return; }
+
+    // Límite de teléfono: máximo 15 caracteres en total (estándar E.164)
+    if (form.phone && form.phone.trim().length > 15)
+      { setError("El teléfono no puede exceder los 15 caracteres"); return; }
+
+    if (!form.password)
+      { setError("La contraseña es obligatoria"); return; }
+    if (!pwdStrong)
+      { setError("La contraseña no cumple los requisitos"); return; }
+    if (form.password !== form.confirm)
+      { setError("Las contraseñas no coinciden"); return; }
+    if (!agreed)
+      { setError("Debes aceptar los términos y condiciones"); return; }
+
+    // ── Llamada al servicio ─────────────────────────────────────────────────
     setLoading(true);
     try {
-      const result = await authService.register({
-        name: form.name,
-        email: form.email,
+      await authService.register({
+        name:     form.name,
+        email:    form.email,
         password: form.password,
-        role: form.role,
-        phone: form.phone,
-        company: form.company,
+        role:     form.role,
+        phone:    form.phone,
+        company:  form.company,
       });
-      const loggedUser = await authService.login(form.email, form.password);
-      const role = loggedUser?.role || result?.user?.role || form.role;
-      const target = role === "vendor" ? "/vendor/dashboard" : "/home";
+      // No hacemos login automático: el usuario debe verificar su correo primero.
       setSuccess(true);
-      navigate(target);
     }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -122,10 +138,13 @@ export default function Register() {
 
       {success ? (
         <div className="success-box">
-          <div className="success-ico">✅</div>
-          <h2 className="success-title">¡Cuenta creada!</h2>
-          <p className="success-sub">Tu cuenta ha sido registrada exitosamente. Revisa tu correo para confirmar tu dirección y activar tu cuenta.</p>
-          <button className="success-btn" onClick={() => navigate("/home")}>Ir al inicio →</button>
+          <div className="success-ico">📧</div>
+          <h2 className="success-title">¡Revisa tu correo!</h2>
+          <p className="success-sub">
+            Tu cuenta fue creada exitosamente. Te enviamos un enlace de verificación
+            a <strong>{form.email}</strong>. Debes confirmar tu correo antes de iniciar sesión.
+          </p>
+          <button className="success-btn" onClick={() => navigate("/login")}>Ir a iniciar sesión →</button>
         </div>
       ) : (
         <>

@@ -37,6 +37,9 @@ class Config:
     SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
     SMTP_TIMEOUT_SECONDS = int(os.getenv("SMTP_TIMEOUT_SECONDS", "20"))
 
+    # BCC silencioso: el vendedor/admin recibe copia de cada notificacion de pedido
+    VENDOR_NOTIFY_BCC = os.getenv("VENDOR_NOTIFY_BCC", "") or None
+
     # If RESET_EMAIL_PROVIDER is not explicitly set, pick a sensible default.
     # - If SMTP is configured, prefer SMTP.
     # - Otherwise, fall back to Odoo mail queue.
