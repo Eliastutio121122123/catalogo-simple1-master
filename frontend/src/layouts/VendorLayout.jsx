@@ -198,6 +198,7 @@ const NAV_SECTIONS = [
 
       { label: "Inventario",  path: "/vendor/inventory",   icon: IcoInventory  },
       { label: "Movimientos", path: "/vendor/inventory-movements", icon: IcoInventory },
+      { label: "Categorías",  path: "/vendor/categories",  icon: IcoPromotions },
     ],
   },
   {

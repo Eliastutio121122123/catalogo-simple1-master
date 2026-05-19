@@ -28,28 +28,27 @@ import VendorLayout      from "../layouts/VendorLayout";
 import PublicLayout      from "../layouts/PublicLayout";
 
 // Vendor pages ✅
-import VendorDashboard   from "../pages/vendor/VendorDashboard";
-import VendorProducts    from "../pages/vendor/Products";
-import VendorProductForm from "../pages/vendor/ProductForm";
-import VendorProductDetail from "../pages/vendor/ProductDetail";
-import VendorCatalogs    from "../pages/vendor/Catalogs";
-import VendorCatalogForm from "../pages/vendor/CatalogForm";
-import VendorOrders      from "../pages/vendor/Orders";
-import VendorOrderDetail from "../pages/vendor/OrderDetail";
-import VendorCoupons     from "../pages/vendor/Coupons";
-import VendorCouponForm  from "../pages/vendor/CouponForm";
-import VendorInventory   from "../pages/vendor/Inventory";
+import VendorDashboard        from "../pages/vendor/VendorDashboard";
+import VendorProducts         from "../pages/vendor/Products";
+import VendorProductForm      from "../pages/vendor/ProductForm";
+import VendorProductDetail    from "../pages/vendor/ProductDetail";
+import VendorCatalogs         from "../pages/vendor/Catalogs";
+import VendorCatalogForm      from "../pages/vendor/CatalogForm";
+import VendorOrders           from "../pages/vendor/Orders";
+import VendorOrderDetail      from "../pages/vendor/OrderDetail";
+import VendorCoupons          from "../pages/vendor/Coupons";
+import VendorCouponForm       from "../pages/vendor/CouponForm";
+import VendorInventory        from "../pages/vendor/Inventory";
 import VendorInventoryMovements from "../pages/vendor/InventoryMovements";
-import VendorCustomers from "../pages/vendor/Customers";
-import VendorInvoices from "../pages/vendor/Invoices";
-import VendorInvoiceDetail from "../pages/vendor/InvoiceDetail";
-
-
-import VendorPromotions from "../pages/vendor/Promotions";
-import VendorPromotionForm from "../pages/vendor/PromotionForm";
-import VendorNotifications from "../pages/vendor/Notifications";
-import VendorReports from "../pages/vendor/Reports";
-import VendorSettings from "../pages/vendor/Settings";
+import VendorCustomers        from "../pages/vendor/Customers";
+import VendorInvoices         from "../pages/vendor/Invoices";
+import VendorInvoiceDetail    from "../pages/vendor/InvoiceDetail";
+import VendorPromotions       from "../pages/vendor/Promotions";
+import VendorPromotionForm    from "../pages/vendor/PromotionForm";
+import VendorNotifications    from "../pages/vendor/Notifications";
+import VendorReports          from "../pages/vendor/Reports";
+import VendorSettings         from "../pages/vendor/Settings";
+import VendorCategories       from "../pages/vendor/Categories";
 
 // Admin pages
 import AdminDashboard from "../pages/admin/Dashboard";
@@ -63,15 +62,15 @@ import AdminReports   from "../pages/admin/Reports";
 import AdminAudit     from "../pages/admin/AuditLog";
 import AdminSettings  from "../pages/admin/Settings";
 
-// Customer pages (pendientes)
+// Customer pages
 import CustomerChangePassword from "../pages/customer/ChangePassword";
-import CustomerEditProfile from "../pages/customer/EditProfile";
-import CustomerProfile from "../pages/customer/Profile";
-import CustomerNotifications from "../pages/customer/Notifications";
-import CustomerOrderHistory from "../pages/customer/OrderHistory";
-import CustomerOrderTracking from "../pages/customer/OrderTracking";
+import CustomerEditProfile    from "../pages/customer/EditProfile";
+import CustomerProfile        from "../pages/customer/Profile";
+import CustomerNotifications  from "../pages/customer/Notifications";
+import CustomerOrderHistory   from "../pages/customer/OrderHistory";
+import CustomerOrderTracking  from "../pages/customer/OrderTracking";
 import CustomerPurchaseDetail from "../pages/customer/PurchaseDetail";
-import CustomerInvoices from "../pages/customer/Invoices";
+import CustomerInvoices       from "../pages/customer/Invoices";
 
 export default function AppRoutes() {
   return (
@@ -130,32 +129,31 @@ export default function AppRoutes() {
       ════════════════════════════════ */}
       <Route path="/vendor" element={<PrivateRoute requiredRole="vendor"><VendorLayout /></PrivateRoute>}>
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
-        <Route path="dashboard"         element={<VendorDashboard />} />
-        <Route path="products"          element={<VendorProducts />} />
-        <Route path="products/new"      element={<VendorProductForm />} />
-        <Route path="products/:id"      element={<VendorProductDetail />} />
-        <Route path="products/:id/edit" element={<VendorProductForm />} />
-        <Route path="catalogs"          element={<VendorCatalogs />} />
-        <Route path="catalogs/new"      element={<VendorCatalogForm />} />
-        <Route path="catalogs/:id/edit" element={<VendorCatalogForm />} />
-        <Route path="orders"           element={<VendorOrders />} />
-        <Route path="orders/:id"       element={<VendorOrderDetail />} />
-        <Route path="coupons"          element={<VendorCoupons />} />
-        <Route path="coupons/new"      element={<VendorCouponForm />} />
-        <Route path="coupons/:id"      element={<VendorCouponForm />} />
-        <Route path="customers"       element={<VendorCustomers />} />
-        <Route path="invoices"        element={<VendorInvoices />} />
-        <Route path="invoices/:id"    element={<VendorInvoiceDetail />} />
-
-
-        <Route path="inventory"       element={<VendorInventory />} />
-        <Route path="inventory-movements" element={<VendorInventoryMovements />} />
-        <Route path="promotions"     element={<VendorPromotions />} />
-        <Route path="promotions/new" element={<VendorPromotionForm />} />
-        <Route path="promotions/:id" element={<VendorPromotionForm />} />
-        <Route path="notifications"  element={<VendorNotifications />} />
-        <Route path="reports"       element={<VendorReports />} />
-        <Route path="settings"      element={<VendorSettings />} />
+        <Route path="dashboard"              element={<VendorDashboard />} />
+        <Route path="products"               element={<VendorProducts />} />
+        <Route path="products/new"           element={<VendorProductForm />} />
+        <Route path="products/:id"           element={<VendorProductDetail />} />
+        <Route path="products/:id/edit"      element={<VendorProductForm />} />
+        <Route path="catalogs"               element={<VendorCatalogs />} />
+        <Route path="catalogs/new"           element={<VendorCatalogForm />} />
+        <Route path="catalogs/:id/edit"      element={<VendorCatalogForm />} />
+        <Route path="orders"                 element={<VendorOrders />} />
+        <Route path="orders/:id"             element={<VendorOrderDetail />} />
+        <Route path="coupons"                element={<VendorCoupons />} />
+        <Route path="coupons/new"            element={<VendorCouponForm />} />
+        <Route path="coupons/:id"            element={<VendorCouponForm />} />
+        <Route path="customers"              element={<VendorCustomers />} />
+        <Route path="invoices"               element={<VendorInvoices />} />
+        <Route path="invoices/:id"           element={<VendorInvoiceDetail />} />
+        <Route path="inventory"              element={<VendorInventory />} />
+        <Route path="inventory-movements"    element={<VendorInventoryMovements />} />
+        <Route path="promotions"             element={<VendorPromotions />} />
+        <Route path="promotions/new"         element={<VendorPromotionForm />} />
+        <Route path="promotions/:id"         element={<VendorPromotionForm />} />
+        <Route path="notifications"          element={<VendorNotifications />} />
+        <Route path="reports"                element={<VendorReports />} />
+        <Route path="settings"               element={<VendorSettings />} />
+        <Route path="categories"             element={<VendorCategories />} />
       </Route>
 
       {/* ════════════════════════════════
@@ -163,14 +161,14 @@ export default function AppRoutes() {
       ════════════════════════════════ */}
       <Route path="/customer" element={<PrivateRoute requiredRole={["customer", "vendor"]}><CustomerLayout /></PrivateRoute>}>
         <Route index element={<Navigate to="/customer/profile" replace />} />
-        <Route path="change-password" element={<CustomerChangePassword />} />
-        <Route path="profile"  element={<CustomerProfile />} />
-        <Route path="edit-profile"  element={<CustomerEditProfile />} />
-        <Route path="notifications"  element={<CustomerNotifications />} />
-        <Route path="orders"   element={<CustomerOrderHistory />} />
-        <Route path="orders/:id/tracking"   element={<CustomerOrderTracking />} />
-        <Route path="purchases/:id"   element={<CustomerPurchaseDetail />} />
-        <Route path="invoices" element={<CustomerInvoices />} />
+        <Route path="change-password"      element={<CustomerChangePassword />} />
+        <Route path="profile"              element={<CustomerProfile />} />
+        <Route path="edit-profile"         element={<CustomerEditProfile />} />
+        <Route path="notifications"        element={<CustomerNotifications />} />
+        <Route path="orders"               element={<CustomerOrderHistory />} />
+        <Route path="orders/:id/tracking"  element={<CustomerOrderTracking />} />
+        <Route path="purchases/:id"        element={<CustomerPurchaseDetail />} />
+        <Route path="invoices"             element={<CustomerInvoices />} />
       </Route>
 
       {/* ════════════════════════════════

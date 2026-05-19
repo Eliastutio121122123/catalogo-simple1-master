@@ -6,20 +6,7 @@ class Catalog(models.Model):
     _description = "Catálogo Digital"
 
     name         = fields.Char(string="Nombre", required=True)
-    category     = fields.Selection(
-        selection=[
-            ("Moda", "Moda"),
-            ("Deportes", "Deportes"),
-            ("Belleza", "Belleza"),
-            ("Alimentos", "Alimentos"),
-            ("Hogar", "Hogar"),
-            ("Electrónica", "Electrónica"),
-            ("Servicios", "Servicios"),
-            ("Otros", "Otros"),
-        ],
-        string="Categoría",
-        default="Otros",
-    )
+    category     = fields.Char(string="Categoría", default="Otros")
     description  = fields.Text(string="Descripción")
     image_url    = fields.Char(string="URL de imagen")
     image_1920   = fields.Image(string="Imagen", max_width=1920, max_height=1920)

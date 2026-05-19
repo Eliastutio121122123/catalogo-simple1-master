@@ -3,6 +3,7 @@ from flask.views import MethodView
 
 from ..middleware.auth_guard import jwt_required
 from ..odoo.catalogs import CatalogService
+from ..odoo.categories import CategoryService
 from ..odoo.orders import (
     create_order,
     create_or_update_cart,
@@ -313,9 +314,21 @@ class StoreProductReviewsAPI(StoreBase):
             return error(str(exc), 500)
 
 
+class StoreCategoriesAPI(StoreBase):
+    """GET /store/categories — public list of all product categories."""
+
+    def get(self):
+        try:
+            cats = CategoryService.list_all()
+            return success(cats)
+        except Exception as exc:
+            return error(str(exc), 500)
+
+
 # ── URL rules ──────────────────────────────────────────────────────────────────
-bp.add_url_rule("/home",     view_func=StoreHomeAPI.as_view("store_home"))
-bp.add_url_rule("/products", view_func=StoreProductsAPI.as_view("store_products"))
+bp.add_url_rule("/home",       view_func=StoreHomeAPI.as_view("store_home"))
+bp.add_url_rule("/categories", view_func=StoreCategoriesAPI.as_view("store_categories"))
+bp.add_url_rule("/products",   view_func=StoreProductsAPI.as_view("store_products"))
 bp.add_url_rule(
     "/products/<int:product_id>",
     view_func=StoreProductDetailAPI.as_view("store_product_detail"),
@@ -335,5 +348,5 @@ bp.add_url_rule(
     "/orders/<int:order_id>",
     view_func=StoreOrderDetailAPI.as_view("store_order_detail"),
 )
-bp.add_url_rule("/promotions/quote",  view_func=StorePromotionsQuoteAPI.as_view("store_promotions_quote"))
-bp.add_url_rule("/coupons/validate",  view_func=StoreCouponValidateAPI.as_view("store_coupons_validate"))
+bp.add_url_rule("/promotions/quote", view_func=StorePromotionsQuoteAPI.as_view("store_promotions_quote"))
+bp.add_url_rule("/coupons/validate", view_func=StoreCouponValidateAPI.as_view("store_coupons_validate"))

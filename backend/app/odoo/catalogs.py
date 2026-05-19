@@ -344,6 +344,15 @@ class CatalogService:
 
         return cls._attach_slug(catalog)
 
+
+    @staticmethod
+    def _clean_category(value: str | None) -> str | None:
+        """Strip whitespace from category; return None if blank."""
+        if not value:
+            return None
+        stripped = str(value).strip()
+        return stripped if stripped else None
+
     @classmethod
     def create_vendor_catalog(cls, partner_id: int, values: dict) -> int:
         payload = {
@@ -353,22 +362,14 @@ class CatalogService:
             "vendor_id": partner_id,
             "active": values.get("active", True),
         }
-        if "category" in values and "category" in cls._catalog_fields():
-            category = str(values.get("category") or "").strip()
-            payload["category"] = category or False
+        # category is now a free-text Char field — write any non-blank value.
+        category = cls._clean_category(values.get("category"))
+        if category:
+            payload["category"] = category
         image_1920 = cls._extract_image(values)
         if image_1920 is not None:
             payload["image_1920"] = image_1920 or False
-        try:
-            return odoo.create("catalog.catalog", payload)
-        except Exception as exc:
-            # Backwards-compat: some DBs may not have the custom field.
-            if "category" in payload and (
-                cls._is_invalid_field_error(exc, "category") or cls._is_missing_column_error(exc, "category")
-            ):
-                payload.pop("category", None)
-                return odoo.create("catalog.catalog", payload)
-            raise
+        return odoo.create("catalog.catalog", payload)
 
     @classmethod
     def update_vendor_catalog(cls, partner_id: int, catalog_id: int, values: dict) -> bool:
@@ -377,26 +378,18 @@ class CatalogService:
         for key in ("name", "description", "image_url", "active"):
             if key in values:
                 payload[key] = values[key]
-        if "category" in values and "category" in cls._catalog_fields():
-            category = str(values.get("category") or "").strip()
-            payload["category"] = category or False
+        # category is now a free-text Char field — write any non-blank value.
+        if "category" in values:
+            category = cls._clean_category(values.get("category"))
+            if category:
+                payload["category"] = category
         image_1920 = cls._extract_image(values)
         if image_1920 is not None:
             payload["image_1920"] = image_1920 or False
         if "name" in payload and payload["name"] is not None:
             payload["name"] = str(payload["name"]).strip()
         if payload:
-            try:
-                return odoo.write("catalog.catalog", [catalog_id], payload)
-            except Exception as exc:
-                if "category" in payload and (
-                    cls._is_invalid_field_error(exc, "category") or cls._is_missing_column_error(exc, "category")
-                ):
-                    payload.pop("category", None)
-                    if not payload:
-                        return True
-                    return odoo.write("catalog.catalog", [catalog_id], payload)
-                raise
+            return odoo.write("catalog.catalog", [catalog_id], payload)
         return True
 
     @classmethod

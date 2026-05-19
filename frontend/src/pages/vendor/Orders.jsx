@@ -154,15 +154,20 @@ export default function Orders() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!orders.length) return;
     const date = new Date().toISOString().slice(0, 10);
-    printTablePdf({
+    await printTablePdf({
       filename: `pedidos_${date}.pdf`,
       title: "Pedidos",
-      subtitle: `${totalCount} pedidos · ${fmtMoney(totalAmount, base, byCode, base)} total`,
+      subtitle: `${totalCount} pedidos · ${date}`,
       columns: exportColumns,
       rows: orders,
+      brandName: "Catalogix",
+      kpis: [
+        { label: "Total pedidos", value: String(totalCount)                                       },
+        { label: "Ingresos",      value: fmtMoney(totalAmount, base, byCode, base)               },
+      ],
     });
   };
 

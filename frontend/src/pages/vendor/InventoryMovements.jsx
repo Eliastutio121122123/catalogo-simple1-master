@@ -73,15 +73,22 @@ export default function InventoryMovements() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!filtered.length) return;
     const date = new Date().toISOString().slice(0, 10);
-    printTablePdf({
+    await printTablePdf({
       filename: `movimientos_inventario_${date}.pdf`,
       title: "Movimientos de inventario",
-      subtitle: `${filtered.length} movimientos`,
+      subtitle: `${filtered.length} movimientos · ${date}`,
       columns: exportColumns,
       rows: filtered,
+      brandName: "Catalogix",
+      kpis: [
+        { label: "Movimientos",       value: String(stats.total)  },
+        { label: "Unidades entrada",  value: String(stats.input)  },
+        { label: "Unidades salida",   value: String(stats.output) },
+        { label: "Ajustes",           value: String(stats.adjust) },
+      ],
     });
   };
 

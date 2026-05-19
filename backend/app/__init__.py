@@ -32,6 +32,7 @@ def create_app(config_class=Config):
     from .router.vendor_inventory import bp as vendor_inventory_bp
     from .router.vendor_pricing import bp as vendor_pricing_bp
     from .router.vendor_reports import bp as vendor_reports_bp
+    from .router.vendor_categories import bp as vendor_categories_bp
     from .router.customer_invoices import bp as customer_invoices_bp
     from .router.admin_audit import bp as admin_audit_bp
     from .router.admin_users import bp as admin_users_bp
@@ -64,6 +65,7 @@ def create_app(config_class=Config):
     app.register_blueprint(vendor_inventory_bp, url_prefix="/api/vendor/inventory")
     app.register_blueprint(vendor_pricing_bp, url_prefix="/api/vendor/pricing")
     app.register_blueprint(vendor_reports_bp, url_prefix="/api/vendor/reports")
+    app.register_blueprint(vendor_categories_bp, url_prefix="/api/vendor/categories")
     app.register_blueprint(customer_invoices_bp, url_prefix="/api/customer/invoices")
     app.register_blueprint(store_bp, url_prefix="/store")
     app.register_blueprint(admin_audit_bp, url_prefix="/api/admin/audit")

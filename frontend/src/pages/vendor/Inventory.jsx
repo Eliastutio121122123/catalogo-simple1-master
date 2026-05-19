@@ -87,16 +87,23 @@ export default function Inventory() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     const toExport = filtered;
     if (!toExport.length) return;
     const date = new Date().toISOString().slice(0, 10);
-    printTablePdf({
+    await printTablePdf({
       filename: `inventario_${date}.pdf`,
       title: "Inventario",
-      subtitle: `${toExport.length} productos`,
+      subtitle: `${toExport.length} productos · ${date}`,
       columns: exportColumns,
       rows: toExport,
+      brandName: "Catalogix",
+      kpis: [
+        { label: "Total productos",  value: String(stats.products) },
+        { label: "Stock bajo",       value: String(stats.low)      },
+        { label: "Agotados",         value: String(stats.out)      },
+        { label: "Unidades totales", value: String(stats.units)    },
+      ],
     });
   };
 

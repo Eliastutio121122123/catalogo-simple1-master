@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import vendorProductService from "../../services/odoo/vendorProductService";
 import { vendorCatalogService } from "../../services/odoo/vendorCatalogService";
+import categoryService from "../../services/odoo/categoryService";
 import useCurrency from "../../hooks/useCurrency";
 import { toImageDataUrl } from "../../utils/imageDataUrl";
 import { formatMoney, symbolForCurrency } from "../../utils/formatCurrency";
@@ -21,7 +22,7 @@ const IcoStar    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 const IcoWarn    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-const CATEGORIES  = ["Moda","Deportes","Belleza","Alimentos","Hogar","Electrónica","Servicios","Otros"];
+const DEFAULT_CATEGORIES = ["Moda","Deportes","Belleza","Alimentos","Hogar","Electrónica","Servicios","Otros"];
 const CATALOGS    = ["Nova Style","FitLife Store","Glam Beauty Box","Gourmet RD","Casa & Deco","Tech Plus"];
 const UNITS       = ["unidad","par","caja","kit","litro","kg","gramo","paquete","docena"];
 const COLORS_PRE  = ["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#64748b","#1e293b","#fafafa"];
@@ -170,6 +171,7 @@ export default function ProductForm() {
   const [loading,  setLoading ] = useState(false);
   const [saveError,setSaveError] = useState("");
   const [catalogOptions, setCatalogOptions] = useState(CATALOGS);
+  const [categoryOptions, setCategoryOptions] = useState(DEFAULT_CATEGORIES);
   const [tab,      setTab     ] = useState("General");
   const [tagInput, setTagInput] = useState("");
   const [newSize,  setNewSize ] = useState("");
@@ -245,6 +247,24 @@ export default function ProductForm() {
         }
       })
       .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  // Load categories dynamically from API
+  useEffect(() => {
+    let active = true;
+    categoryService.list()
+      .then((rows) => {
+        if (!active) return;
+        if (Array.isArray(rows) && rows.length) {
+          // Use fullName for hierarchy display, name for value
+          setCategoryOptions(rows.map(r => ({ value: r.name, label: r.fullName || r.name })));
+        }
+      })
+      .catch(() => {
+        // Fallback to defaults if API fails
+        setCategoryOptions(DEFAULT_CATEGORIES.map(c => ({ value: c, label: c })));
+      });
     return () => { active = false; };
   }, []);
 
@@ -739,7 +759,11 @@ export default function ProductForm() {
                     <Field label="Categoría" required error={errors.category}>
                       <Sel value={form.category} onChange={e => set("category", e.target.value)} error={errors.category}>
                         <option value="">Seleccionar...</option>
-                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                        {categoryOptions.map(c => (
+                          typeof c === "string"
+                            ? <option key={c} value={c}>{c}</option>
+                            : <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
                       </Sel>
                     </Field>
                     <Field label="Catálogo" required error={errors.catalog}>

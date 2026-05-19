@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { vendorCatalogService } from "../../services/odoo/vendorCatalogService";
 import vendorProductService from "../../services/odoo/vendorProductService";
+import categoryService from "../../services/odoo/categoryService";
 import { toImageDataUrl } from "../../utils/imageDataUrl";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
@@ -22,7 +23,7 @@ const IcoTag     = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 const IcoPalette = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>;
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-const CATEGORIES  = ["Moda","Deportes","Belleza","Alimentos","Hogar","Electrónica","Servicios","Otros"];
+
 const ACCENT_COLORS = ["#f43f5e","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#64748b"];
 const TABS = ["Información","Productos","Apariencia","Compartir","SEO"];
 
@@ -132,9 +133,24 @@ export default function CatalogForm() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError,   setQrError  ] = useState("");
+  const [categories, setCategories] = useState([]);
   const fileRef = useRef(null);
 
   useEffect(() => { setTimeout(() => setReady(true), 60); }, []);
+
+  // ─── Cargar categorías dinámicas del vendedor ──────────────────────────────
+  const FALLBACK_CATEGORIES = ["Moda","Deportes","Belleza","Alimentos","Hogar","Electrónica","Servicios","Otros"];
+  useEffect(() => {
+    categoryService.list()
+      .then((rows) => {
+        const names = Array.isArray(rows) && rows.length > 0
+          ? rows.map(r => r.name || r.fullName).filter(Boolean)
+          : FALLBACK_CATEGORIES;
+        setCategories(names);
+      })
+      .catch(() => setCategories(FALLBACK_CATEGORIES));
+  }, []);
+
 
   const mapFromApi = raw => {
     const name = raw?.name || "";
@@ -207,8 +223,7 @@ export default function CatalogForm() {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim())    e.name     = "El nombre es obligatorio";
-    if (!form.category)       e.category = "Selecciona una categoría";
+    if (!form.name.trim())        e.name        = "El nombre es obligatorio";
     if (!form.description.trim()) e.description = "La descripción es obligatoria";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -553,10 +568,15 @@ export default function CatalogForm() {
                   </Field>
 
                   <div className="cf-g2">
-                    <Field label="Categoría" required error={errors.category}>
-                      <Sel value={form.category} onChange={e => set("category", e.target.value)} error={errors.category}>
-                        <option value="">Seleccionar...</option>
-                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    <Field label="Categoría" required>
+                      <Sel
+                        value={form.category}
+                        onChange={e => set("category", e.target.value)}
+                      >
+                        <option value="">— Selecciona una categoría —</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
                       </Sel>
                     </Field>
                     <Field label="URL personalizada" hint={`catalogix.com/c/${slug}`}>

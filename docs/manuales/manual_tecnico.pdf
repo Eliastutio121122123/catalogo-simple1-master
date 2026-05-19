@@ -1,0 +1,1883 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R 25 0 R 27 0 R 29 0 R 31 0 R 33 0 R 35 0 R 37 0 R 39 0 R 41 0 R 43 0 R 45 0 R 47 0 R 49 0 R 51 0 R 53 0 R 55 0 R 57 0 R] /Count 27 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Length 3734 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(MANUAL TÉCNICO INTEGRAL DE CATALOGIX) Tj
+0 -13 Td () Tj
+0 -13 Td (Este documento define el manual técnico de Catalogix con enfoque de arquitectura, operación, ) Tj
+0 -13 Td (integración ERP y guía de implementación. Está orientado a equipos de ingeniería full-stack, ) Tj
+0 -13 Td (arquitectos de solución, DevOps y responsables de continuidad operativa.) Tj
+0 -13 Td () Tj
+0 -13 Td (La redacción se basa en la estructura y el código del repositorio actual, y además incluye ) Tj
+0 -13 Td (patrones de implementación recomendados cuando la arquitectura objetivo declara capacidades que ) Tj
+0 -13 Td (todavía están en maduración \(por ejemplo, uso explícito de Axios interceptors, Zustand persistente) Tj
+0 -13 Td ( o Stripe Elements con PaymentIntent\).) Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 1: INTRODUCCIÓN, MODELO DE NEGOCIO Y ESPECIFICACIONES GENERALES) Tj
+0 -13 Td () Tj
+0 -13 Td (1.1 FILOSOFÍA DE DISEÑO DE CATALOGIX) Tj
+0 -13 Td () Tj
+0 -13 Td (Catalogix resuelve una tensión técnica clásica: por un lado, se necesita una experiencia de ) Tj
+0 -13 Td (usuario muy reactiva, con navegación rápida, formularios dinámicos y actualizaciones inmediatas; ) Tj
+0 -13 Td (por otro lado, el sistema de verdad transaccional vive en un ERP empresarial con reglas de negocio) Tj
+0 -13 Td ( complejas, altamente acopladas a sus modelos internos, sus workflows y su consistencia contable.) Tj
+0 -13 Td () Tj
+0 -13 Td (La decisión arquitectónica central es no exponer Odoo directamente al navegador, ni duplicar ) Tj
+0 -13 Td (reglas de negocio críticas en el frontend. En su lugar, se introduce un middleware en Flask que ) Tj
+0 -13 Td (actúa como frontera de seguridad, normalizador semántico y orquestador de procesos. Este gateway ) Tj
+0 -13 Td (traduce las intenciones de negocio del cliente web en operaciones JSON-RPC sobre Odoo, de modo ) Tj
+0 -13 Td (que:) Tj
+0 -13 Td () Tj
+0 -13 Td (- El frontend conserva agilidad y desacoplamiento visual.) Tj
+0 -13 Td (- El backend aplica políticas de autenticación y control de acceso unificadas.) Tj
+0 -13 Td (- Odoo mantiene la autoridad sobre inventario, pedidos, facturación, asientos y conciliación.) Tj
+0 -13 Td () Tj
+0 -13 Td (Esta separación evita dos anti-patrones frecuentes:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Reescribir lógica contable en el frontend o en microservicios paralelos, con alto riesgo de ) Tj
+0 -13 Td (divergencia funcional.) Tj
+0 -13 Td (2. Escribir directamente en PostgreSQL saltando el ORM de Odoo, con corrupción silenciosa de ) Tj
+0 -13 Td (invariantes de negocio.) Tj
+0 -13 Td () Tj
+0 -13 Td (1.2 ECOSISTEMA MULTI-VENDEDOR) Tj
+0 -13 Td () Tj
+0 -13 Td (El modelo comercial de Catalogix está diseñado para marketplace distribuido: cada vendedor ) Tj
+0 -13 Td (administra su catálogo como unidad independiente, pero sobre una plataforma común. Esta lógica se ) Tj
+0 -13 Td (implementa con:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Un modelo custom `catalog.vendor` que encapsula identidad de tienda, estado operativo y relación) Tj
+0 -13 Td ( con `res.partner` y `res.users`.) Tj
+0 -13 Td (- Relación de productos a catálogos \(`catalog.catalog`\) y catálogos a vendedor \(`vendor_id`\).) Tj
+0 -13 Td (- Endpoints segmentados por dominio \(`/api/vendor/*`, `/api/admin/*`, `/store/*`\) con filtros de ) Tj
+0 -13 Td (ownership.) Tj
+0 -13 Td () Tj
+0 -13 Td (El resultado funcional es que cada vendor opera su mini-PIM \(Product Information Management\), ) Tj
+0 -13 Td (define inventario, promociones y cupones, y publica un escaparate con aislamiento de edición ) Tj
+0 -13 Td (respecto a otros vendedores.) Tj
+0 -13 Td () Tj
+0 -13 Td (1.3 MATRIZ DE ROLES Y PERMISOS DE ACCESO) Tj
+0 -13 Td () Tj
+0 -13 Td (#### Clientes \(Storefront\)) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 2907 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(El cliente final consume rutas públicas y autenticadas para:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Explorar catálogos y productos \(`/store/catalogs`, `/store/products`\).) Tj
+0 -13 Td (- Persistir carrito por partner en `sale.order` estado draft.) Tj
+0 -13 Td (- Aplicar promociones y cupones.) Tj
+0 -13 Td (- Completar checkout y seguimiento de pago/factura.) Tj
+0 -13 Td () Tj
+0 -13 Td (#### Vendedores \(Vendor Dashboard\)) Tj
+0 -13 Td () Tj
+0 -13 Td (El vendedor opera paneles especializados:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Gestión de productos \(`/api/vendor/products`\).) Tj
+0 -13 Td (- Inventario y movimientos.) Tj
+0 -13 Td (- Gestión de cupones/promociones.) Tj
+0 -13 Td (- Reportes y exportaciones.) Tj
+0 -13 Td (- Configuración de perfil/tienda.) Tj
+0 -13 Td () Tj
+0 -13 Td (La autorización combina JWT en Flask y validación de ownership en consultas a Odoo, por ejemplo ) Tj
+0 -13 Td (comprobando que el `catalog_id` del producto pertenece al `partner_id` del vendedor autenticado.) Tj
+0 -13 Td () Tj
+0 -13 Td (#### Administradores \(Admin Dashboard\)) Tj
+0 -13 Td () Tj
+0 -13 Td (El rol administrador gestiona:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Auditoría global \(`admin_audit`\).) Tj
+0 -13 Td (- Usuarios/vendedores.) Tj
+0 -13 Td (- Catálogos, pedidos, pagos y reportes cross-tenant.) Tj
+0 -13 Td (- Diagnóstico operacional.) Tj
+0 -13 Td () Tj
+0 -13 Td (En Odoo, la capa de permisos se refuerza con `ir.model.access.csv` y grupos \(`group_vendor` para ) Tj
+0 -13 Td (operaciones delimitadas de vendedor, `base.group_system` para administración completa\).) Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 2: ARQUITECTURA DE INTEGRACIÓN Y FLUJO DE DATOS) Tj
+0 -13 Td () Tj
+0 -13 Td (2.1 ARQUITECTURA DE MICROSERVICIOS HÍBRIDOS) Tj
+0 -13 Td () Tj
+0 -13 Td (Aunque Catalogix no fragmenta cada dominio en un microservicio independiente, sí adopta un patrón ) Tj
+0 -13 Td (híbrido: SPA + API Gateway + ERP transaccional. Flask cumple funciones de reverse proxy semántico ) Tj
+0 -13 Td (hacia Odoo:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Recibe REST JSON desde frontend.) Tj
+0 -13 Td (- Aplica autenticación JWT y enriquecimiento de contexto \(`uid`, `partner_id`\).) Tj
+0 -13 Td (- Encapsula reintentos de sesión Odoo y control de errores.) Tj
+0 -13 Td (- Expone contratos API estables para UI, aun cuando Odoo cambie detalles internos.) Tj
+0 -13 Td () Tj
+0 -13 Td (Esta capa desacopla la evolución del frontend del ciclo de vida del ERP y minimiza filtración de ) Tj
+0 -13 Td (complejidad de Odoo al cliente.) Tj
+0 -13 Td () Tj
+0 -13 Td (2.2 DIAGRAMA DE FLUJO DEL CICLO DE VIDA DE LA PETICIÓN) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (sequenceDiagram) Tj
+0 -13 Td (    autonumber) Tj
+0 -13 Td (    participant U as Usuario \(Browser\)) Tj
+0 -13 Td (    participant FE as Frontend React/Vite) Tj
+0 -13 Td (    participant API as Flask API Gateway) Tj
+0 -13 Td (    participant JWT as JWT Guard) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 2843 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(    participant OC as OdooClient JSON-RPC) Tj
+0 -13 Td (    participant ODOO as Odoo 19 ORM) Tj
+0 -13 Td (    participant PG as PostgreSQL 16) Tj
+0 -13 Td (    participant STR as Stripe) Tj
+0 -13 Td () Tj
+0 -13 Td (    U->>FE: Acción UI \(ej: Checkout\)) Tj
+0 -13 Td (    FE->>FE: Construcción payload + token JWT) Tj
+0 -13 Td (    FE->>API: POST /api/payments/checkout \(Authorization: Bearer\)) Tj
+0 -13 Td (    API->>JWT: Validar firma/exp del JWT) Tj
+0 -13 Td (    JWT-->>API: payload {uid, partner_id?}) Tj
+0 -13 Td () Tj
+0 -13 Td (    API->>OC: payment_service.checkout\(uid, payload\)) Tj
+0 -13 Td (    OC->>OC: _ensure_session\(\) TTL + cookies) Tj
+0 -13 Td (    alt Sesión Odoo vigente) Tj
+0 -13 Td (      OC->>ODOO: /web/dataset/call_kw sale.order/search_read) Tj
+0 -13 Td (    else Sesión expirada) Tj
+0 -13 Td (      OC->>ODOO: /web/session/authenticate) Tj
+0 -13 Td (      ODOO-->>OC: uid + session cookie) Tj
+0 -13 Td (      OC->>ODOO: /web/dataset/call_kw \(retry\)) Tj
+0 -13 Td (    end) Tj
+0 -13 Td () Tj
+0 -13 Td (    ODOO->>PG: ORM write/read sale.order + sale.order.line) Tj
+0 -13 Td (    PG-->>ODOO: Commit transaccional) Tj
+0 -13 Td (    ODOO-->>OC: order_id + state) Tj
+0 -13 Td () Tj
+0 -13 Td (    OC->>ODOO: action_confirm + create_invoices) Tj
+0 -13 Td (    ODOO->>PG: stock/account.move/accounting writes) Tj
+0 -13 Td (    PG-->>ODOO: Commit) Tj
+0 -13 Td (    ODOO-->>OC: invoice_id + payment_state) Tj
+0 -13 Td () Tj
+0 -13 Td (    alt Método stripe/checkout-session) Tj
+0 -13 Td (      OC->>STR: Crear Checkout Session / Payment Intent) Tj
+0 -13 Td (      STR-->>OC: session_url/client_secret) Tj
+0 -13 Td (      OC-->>API: checkout_url + metadata) Tj
+0 -13 Td (      API-->>FE: JSON ok) Tj
+0 -13 Td (      FE->>U: Redirección/confirmación pago) Tj
+0 -13 Td (      STR->>API: Webhook firmado \(payment success\)) Tj
+0 -13 Td (      API->>OC: handle_stripe_event\(\)) Tj
+0 -13 Td (      OC->>ODOO: account.payment.register + action_create_payments) Tj
+0 -13 Td (      ODOO->>PG: Reconciliación contable) Tj
+0 -13 Td (      PG-->>ODOO: Factura pagada) Tj
+0 -13 Td (      ODOO-->>OC: payment_state=paid) Tj
+0 -13 Td (    else Método cash/bank) Tj
+0 -13 Td (      OC->>ODOO: account.payment.register) Tj
+0 -13 Td (      ODOO->>PG: pago + conciliación) Tj
+0 -13 Td (      PG-->>ODOO: paid/in_payment) Tj
+0 -13 Td (    end) Tj
+0 -13 Td () Tj
+0 -13 Td (    OC-->>API: response normalizada) Tj
+0 -13 Td (    API-->>FE: {ok:true,data}) Tj
+0 -13 Td (    FE->>U: Estado final de la compra) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (2.3 ACCESO DIRECTO A BASE DE DATOS VS ORM RPC) Tj
+0 -13 Td () Tj
+0 -13 Td (No debe escribirse directamente en PostgreSQL con SQL ad-hoc para operaciones de negocio de Odoo. ) Tj
+0 -13 Td (La razón no es solo ?buenas prácticas?, sino integridad funcional del ERP:) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 2115 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (- `sale.order` requiere triggers de workflow \(`action_confirm`\) para generar reservas y ) Tj
+0 -13 Td (movimientos.) Tj
+0 -13 Td (- `account.move` necesita posteo contable \(`action_post`\) y conciliación por wizard.) Tj
+0 -13 Td (- Stock y picking se activan por métodos de modelo, no por insert directo.) Tj
+0 -13 Td (- Reglas fiscales, diarios, impuestos y cuentas por defecto dependen de lógica Python de Odoo.) Tj
+0 -13 Td () Tj
+0 -13 Td (Un `UPDATE` directo sobre tablas puede dejar datos ?aparentemente correctos? pero inconsistente ) Tj
+0 -13 Td (con:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Estados de documentos.) Tj
+0 -13 Td (- Asientos relacionados.) Tj
+0 -13 Td (- Campos calculados o cacheados.) Tj
+0 -13 Td (- Auditoría y trazabilidad.) Tj
+0 -13 Td () Tj
+0 -13 Td (Por eso Catalogix usa `call_kw` y métodos de modelo, preservando ciclo de negocio nativo.) Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 3: CAPA FRONTEND \(REACT 19 Y VITE\)) Tj
+0 -13 Td () Tj
+0 -13 Td (3.1 ESTRUCTURA DE DIRECTORIOS DEL PROYECTO CLIENTE) Tj
+0 -13 Td () Tj
+0 -13 Td (Estructura relevante observada:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (frontend/src/) Tj
+0 -13 Td (  components/) Tj
+0 -13 Td (    payments/) Tj
+0 -13 Td (    dashboard/) Tj
+0 -13 Td (    reports/) Tj
+0 -13 Td (    ui/) Tj
+0 -13 Td (  hooks/) Tj
+0 -13 Td (    useCurrency.js) Tj
+0 -13 Td (    useCart.js) Tj
+0 -13 Td (    useAuth.js) Tj
+0 -13 Td (  layouts/) Tj
+0 -13 Td (    PublicLayout.jsx) Tj
+0 -13 Td (    VendorLayout.jsx) Tj
+0 -13 Td (    AdminLayout.jsx) Tj
+0 -13 Td (    CustomerLayout.jsx) Tj
+0 -13 Td (  pages/) Tj
+0 -13 Td (    store/) Tj
+0 -13 Td (    vendor/) Tj
+0 -13 Td (    admin/) Tj
+0 -13 Td (    auth/) Tj
+0 -13 Td (  router/) Tj
+0 -13 Td (    index.jsx) Tj
+0 -13 Td (    routes.jsx) Tj
+0 -13 Td (    guards.jsx) Tj
+0 -13 Td (  services/) Tj
+0 -13 Td (    odoo/) Tj
+0 -13 Td (      odooClient.js) Tj
+0 -13 Td (      authService.js) Tj
+0 -13 Td (      paymentService.js) Tj
+0 -13 Td (      vendorProductService.js) Tj
+0 -13 Td (  store/) Tj
+0 -13 Td (    authStore.js) Tj
+0 -13 Td (    cartStore.js) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 2494 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(  utils/) Tj
+0 -13 Td (    formatCurrency.js) Tj
+0 -13 Td (    brandedExcel.js) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (3.2 ENRUTAMIENTO PROTEGIDO \(ROUTER GUARDS\)) Tj
+0 -13 Td () Tj
+0 -13 Td (El sistema actual implementa guards en `frontend/src/router/guards.jsx` con redirección por rol. ) Tj
+0 -13 Td (Un ejemplo completo:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import { Navigate, useLocation } from "react-router-dom";) Tj
+0 -13 Td (import authStore from "../store/authStore";) Tj
+0 -13 Td () Tj
+0 -13 Td (export function PrivateRoute\({ children, requiredRole }\) {) Tj
+0 -13 Td (  const location = useLocation\(\);) Tj
+0 -13 Td (  const isAuthenticated = authStore.isAuthenticated\(\);) Tj
+0 -13 Td (  const role = authStore.getRole\(\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  if \(!isAuthenticated\) {) Tj
+0 -13 Td (    return <Navigate to="/login" state={{ from: location }} replace />;) Tj
+0 -13 Td (  }) Tj
+0 -13 Td () Tj
+0 -13 Td (  const allowedRoles = Array.isArray\(requiredRole\)) Tj
+0 -13 Td (    ? requiredRole.map\(\(r\) => String\(r\).toLowerCase\(\)\)) Tj
+0 -13 Td (    : requiredRole) Tj
+0 -13 Td (      ? [String\(requiredRole\).toLowerCase\(\)]) Tj
+0 -13 Td (      : null;) Tj
+0 -13 Td () Tj
+0 -13 Td (  if \(allowedRoles && !allowedRoles.includes\(role\)\) {) Tj
+0 -13 Td (    if \(role === "admin"\) return <Navigate to="/admin/dashboard" replace />;) Tj
+0 -13 Td (    if \(role === "vendor"\) return <Navigate to="/vendor/dashboard" replace />;) Tj
+0 -13 Td (    return <Navigate to="/home" replace />;) Tj
+0 -13 Td (  }) Tj
+0 -13 Td () Tj
+0 -13 Td (  return children;) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td (export function PublicRoute\({ children }\) {) Tj
+0 -13 Td (  const isAuthenticated = authStore.isAuthenticated\(\);) Tj
+0 -13 Td (  const role = authStore.getRole\(\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  if \(isAuthenticated\) {) Tj
+0 -13 Td (    if \(role === "admin"\) return <Navigate to="/admin/dashboard" replace />;) Tj
+0 -13 Td (    if \(role === "vendor"\) return <Navigate to="/vendor/dashboard" replace />;) Tj
+0 -13 Td (    return <Navigate to="/home" replace />;) Tj
+0 -13 Td (  }) Tj
+0 -13 Td () Tj
+0 -13 Td (  return children;) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (Y un ejemplo del montaje de rutas con `VendorLayout`:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import { Routes, Route, Navigate } from "react-router-dom";) Tj
+0 -13 Td (import { PrivateRoute, PublicRoute } from "./guards";) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 2483 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(import VendorLayout from "../layouts/VendorLayout";) Tj
+0 -13 Td (import VendorDashboard from "../pages/vendor/VendorDashboard";) Tj
+0 -13 Td (import VendorProducts from "../pages/vendor/Products";) Tj
+0 -13 Td (import Login from "../pages/auth/Login";) Tj
+0 -13 Td (import AuthLayout from "../layouts/AuthLayout";) Tj
+0 -13 Td () Tj
+0 -13 Td (export default function AppRoutes\(\) {) Tj
+0 -13 Td (  return \() Tj
+0 -13 Td (    <Routes>) Tj
+0 -13 Td (      <Route path="/" element={<Navigate to="/login" replace />} />) Tj
+0 -13 Td () Tj
+0 -13 Td (      <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>) Tj
+0 -13 Td (        <Route path="/login" element={<Login />} />) Tj
+0 -13 Td (      </Route>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <Route) Tj
+0 -13 Td (        path="/vendor") Tj
+0 -13 Td (        element={) Tj
+0 -13 Td (          <PrivateRoute requiredRole="vendor">) Tj
+0 -13 Td (            <VendorLayout />) Tj
+0 -13 Td (          </PrivateRoute>) Tj
+0 -13 Td (        }) Tj
+0 -13 Td (      >) Tj
+0 -13 Td (        <Route index element={<Navigate to="/vendor/dashboard" replace />} />) Tj
+0 -13 Td (        <Route path="dashboard" element={<VendorDashboard />} />) Tj
+0 -13 Td (        <Route path="products" element={<VendorProducts />} />) Tj
+0 -13 Td (      </Route>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <Route path="*" element={<Navigate to="/home" replace />} />) Tj
+0 -13 Td (    </Routes>) Tj
+0 -13 Td (  \);) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (3.3 GESTIÓN DEL ESTADO GLOBAL CON ZUSTAND) Tj
+0 -13 Td () Tj
+0 -13 Td (El snapshot actual usa `authStore` manual y `CartContext`, pero el stack objetivo declara Zustand ) Tj
+0 -13 Td (persistente. Implementación recomendada completa:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import { create } from "zustand";) Tj
+0 -13 Td (import { persist, createJSONStorage } from "zustand/middleware";) Tj
+0 -13 Td () Tj
+0 -13 Td (const TOKEN_KEY = "catalogix_token";) Tj
+0 -13 Td (const REFRESH_KEY = "catalogix_refresh_token";) Tj
+0 -13 Td () Tj
+0 -13 Td (const clampQty = \(qty\) => {) Tj
+0 -13 Td (  const value = Number\(qty\);) Tj
+0 -13 Td (  if \(!Number.isFinite\(value\) || value <= 0\) return 1;) Tj
+0 -13 Td (  return Math.floor\(value\);) Tj
+0 -13 Td (};) Tj
+0 -13 Td () Tj
+0 -13 Td (export const useSessionCartStore = create\() Tj
+0 -13 Td (  persist\() Tj
+0 -13 Td (    \(set, get\) => \({) Tj
+0 -13 Td (      token: "",) Tj
+0 -13 Td (      refreshToken: "",) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 2588 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(      user: null,) Tj
+0 -13 Td (      isAuthenticated: false,) Tj
+0 -13 Td (      currency: "DOP",) Tj
+0 -13 Td (      items: [],) Tj
+0 -13 Td () Tj
+0 -13 Td (      setSession: \({ token, refreshToken, user }\) => {) Tj
+0 -13 Td (        const nextToken = String\(token || ""\);) Tj
+0 -13 Td (        const nextRefresh = String\(refreshToken || ""\);) Tj
+0 -13 Td (        set\({) Tj
+0 -13 Td (          token: nextToken,) Tj
+0 -13 Td (          refreshToken: nextRefresh,) Tj
+0 -13 Td (          user: user || null,) Tj
+0 -13 Td (          isAuthenticated: Boolean\(nextToken\),) Tj
+0 -13 Td (        }\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      clearSession: \(\) => {) Tj
+0 -13 Td (        set\({) Tj
+0 -13 Td (          token: "",) Tj
+0 -13 Td (          refreshToken: "",) Tj
+0 -13 Td (          user: null,) Tj
+0 -13 Td (          isAuthenticated: false,) Tj
+0 -13 Td (        }\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      setCurrency: \(currencyCode\) => {) Tj
+0 -13 Td (        const code = String\(currencyCode || "DOP"\).toUpperCase\(\);) Tj
+0 -13 Td (        set\({ currency: code }\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      addItem: \(product\) => {) Tj
+0 -13 Td (        if \(!product || !product.id\) return;) Tj
+0 -13 Td (        set\(\(state\) => {) Tj
+0 -13 Td (          const productId = Number\(product.id\);) Tj
+0 -13 Td (          const price = Number\(product.price || 0\);) Tj
+0 -13 Td (          const qty = clampQty\(product.qty || 1\);) Tj
+0 -13 Td (          const existing = state.items.find\(\(i\) => Number\(i.id\) === productId\);) Tj
+0 -13 Td (          if \(existing\) {) Tj
+0 -13 Td (            return {) Tj
+0 -13 Td (              items: state.items.map\(\(i\) =>) Tj
+0 -13 Td (                Number\(i.id\) === productId) Tj
+0 -13 Td (                  ? { ...i, qty: clampQty\(i.qty + qty\), price }) Tj
+0 -13 Td (                  : i) Tj
+0 -13 Td (              \),) Tj
+0 -13 Td (            };) Tj
+0 -13 Td (          }) Tj
+0 -13 Td (          return {) Tj
+0 -13 Td (            items: [) Tj
+0 -13 Td (              ...state.items,) Tj
+0 -13 Td (              {) Tj
+0 -13 Td (                id: productId,) Tj
+0 -13 Td (                name: String\(product.name || ""\),) Tj
+0 -13 Td (                qty,) Tj
+0 -13 Td (                price,) Tj
+0 -13 Td (                currency: String\(product.currency || state.currency || "DOP"\).toUpperCase\(\),) Tj
+0 -13 Td (                imageUrl: String\(product.imageUrl || ""\),) Tj
+0 -13 Td (              },) Tj
+ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 16 0 R >>
+endobj
+18 0 obj
+<< /Length 2649 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(            ],) Tj
+0 -13 Td (          };) Tj
+0 -13 Td (        }\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      updateQty: \(productId, qty\) => {) Tj
+0 -13 Td (        const parsedId = Number\(productId\);) Tj
+0 -13 Td (        const parsedQty = Number\(qty\);) Tj
+0 -13 Td (        if \(!Number.isFinite\(parsedId\)\) return;) Tj
+0 -13 Td (        if \(!Number.isFinite\(parsedQty\) || parsedQty <= 0\) {) Tj
+0 -13 Td (          set\(\(state\) => \({) Tj
+0 -13 Td (            items: state.items.filter\(\(i\) => Number\(i.id\) !== parsedId\),) Tj
+0 -13 Td (          }\)\);) Tj
+0 -13 Td (          return;) Tj
+0 -13 Td (        }) Tj
+0 -13 Td (        set\(\(state\) => \({) Tj
+0 -13 Td (          items: state.items.map\(\(i\) =>) Tj
+0 -13 Td (            Number\(i.id\) === parsedId ? { ...i, qty: clampQty\(parsedQty\) } : i) Tj
+0 -13 Td (          \),) Tj
+0 -13 Td (        }\)\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      removeItem: \(productId\) => {) Tj
+0 -13 Td (        const parsedId = Number\(productId\);) Tj
+0 -13 Td (        if \(!Number.isFinite\(parsedId\)\) return;) Tj
+0 -13 Td (        set\(\(state\) => \({) Tj
+0 -13 Td (          items: state.items.filter\(\(i\) => Number\(i.id\) !== parsedId\),) Tj
+0 -13 Td (        }\)\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td () Tj
+0 -13 Td (      clearCart: \(\) => set\({ items: [] }\),) Tj
+0 -13 Td () Tj
+0 -13 Td (      cartCount: \(\) => get\(\).items.reduce\(\(acc, item\) => acc + clampQty\(item.qty\), 0\),) Tj
+0 -13 Td () Tj
+0 -13 Td (      cartSubtotal: \(\) =>) Tj
+0 -13 Td (        get\(\).items.reduce\(\(acc, item\) => acc + Number\(item.price || 0\) * clampQty\(item.qty\), 0\),) Tj
+0 -13 Td (    }\),) Tj
+0 -13 Td (    {) Tj
+0 -13 Td (      name: "catalogix_session_cart_store",) Tj
+0 -13 Td (      storage: createJSONStorage\(\(\) => localStorage\),) Tj
+0 -13 Td (      partialize: \(state\) => \({) Tj
+0 -13 Td (        token: state.token,) Tj
+0 -13 Td (        refreshToken: state.refreshToken,) Tj
+0 -13 Td (        user: state.user,) Tj
+0 -13 Td (        isAuthenticated: state.isAuthenticated,) Tj
+0 -13 Td (        currency: state.currency,) Tj
+0 -13 Td (        items: state.items,) Tj
+0 -13 Td (      }\),) Tj
+0 -13 Td (      onRehydrateStorage: \(\) => \(state\) => {) Tj
+0 -13 Td (        if \(!state\) return;) Tj
+0 -13 Td (        if \(state.token\) localStorage.setItem\(TOKEN_KEY, state.token\);) Tj
+0 -13 Td (        if \(state.refreshToken\) localStorage.setItem\(REFRESH_KEY, state.refreshToken\);) Tj
+0 -13 Td (      },) Tj
+0 -13 Td (    }) Tj
+0 -13 Td (  \)) Tj
+0 -13 Td (\);) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 18 0 R >>
+endobj
+20 0 obj
+<< /Length 2885 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (3.4 FORMULARIOS REACTIVOS Y VALIDACIÓN CON ZOD) Tj
+0 -13 Td () Tj
+0 -13 Td (Ejemplo completo de formulario de producto con `react-hook-form` y `zod`, incluyendo reglas de ) Tj
+0 -13 Td (negocio:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import React from "react";) Tj
+0 -13 Td (import { useForm, Controller } from "react-hook-form";) Tj
+0 -13 Td (import { z } from "zod";) Tj
+0 -13 Td (import { zodResolver } from "@hookform/resolvers/zod";) Tj
+0 -13 Td (import vendorProductService from "../../services/odoo/vendorProductService";) Tj
+0 -13 Td () Tj
+0 -13 Td (const currencyCode = z.string\(\).trim\(\).toUpperCase\(\).regex\(/^[A-Z]{3}$/, "Moneda inválida"\);) Tj
+0 -13 Td () Tj
+0 -13 Td (const productSchema = z.object\({) Tj
+0 -13 Td (  name: z.string\(\).trim\(\).min\(2, "El nombre debe tener al menos 2 caracteres"\),) Tj
+0 -13 Td (  sku: z.string\(\).trim\(\).min\(2, "SKU requerido"\),) Tj
+0 -13 Td (  description: z.string\(\).trim\(\).max\(2000, "Descripción demasiado larga"\),) Tj
+0 -13 Td (  price: z.coerce.number\(\).min\(0, "Precio inválido"\),) Tj
+0 -13 Td (  cost: z.coerce.number\(\).min\(0, "Costo inválido"\),) Tj
+0 -13 Td (  stock: z.coerce.number\(\).min\(0, "Stock inválido"\),) Tj
+0 -13 Td (  minStock: z.coerce.number\(\).min\(0, "Mínimo inválido"\),) Tj
+0 -13 Td (  currency: currencyCode,) Tj
+0 -13 Td (  category: z.string\(\).trim\(\).min\(1, "Categoría requerida"\),) Tj
+0 -13 Td (  catalog: z.string\(\).trim\(\).min\(1, "Catálogo requerido"\),) Tj
+0 -13 Td (  status: z.enum\(["active", "inactive", "draft"]\),) Tj
+0 -13 Td (  taxable: z.boolean\(\),) Tj
+0 -13 Td (  featured: z.boolean\(\),) Tj
+0 -13 Td (  colors: z.array\(z.string\(\).trim\(\).min\(1\)\).max\(25\),) Tj
+0 -13 Td (  sizes: z.array\(z.string\(\).trim\(\).min\(1\)\).max\(25\),) Tj
+0 -13 Td (  imagesBase64: z.array\(z.string\(\).min\(20, "Imagen inválida"\)\).max\(4, "Máximo 4 imágenes"\),) Tj
+0 -13 Td (}\).superRefine\(\(data, ctx\) => {) Tj
+0 -13 Td (  if \(data.cost > data.price\) {) Tj
+0 -13 Td (    ctx.addIssue\({) Tj
+0 -13 Td (      code: z.ZodIssueCode.custom,) Tj
+0 -13 Td (      path: ["cost"],) Tj
+0 -13 Td (      message: "El costo no debe exceder el precio de venta",) Tj
+0 -13 Td (    }\);) Tj
+0 -13 Td (  }) Tj
+0 -13 Td (}\);) Tj
+0 -13 Td () Tj
+0 -13 Td (export default function ProductFormWithZod\({ initialData, onSaved }\) {) Tj
+0 -13 Td (  const {) Tj
+0 -13 Td (    register,) Tj
+0 -13 Td (    handleSubmit,) Tj
+0 -13 Td (    control,) Tj
+0 -13 Td (    formState: { errors, isSubmitting, isDirty },) Tj
+0 -13 Td (    reset,) Tj
+0 -13 Td (    watch,) Tj
+0 -13 Td (  } = useForm\({) Tj
+0 -13 Td (    resolver: zodResolver\(productSchema\),) Tj
+0 -13 Td (    defaultValues: initialData || {) Tj
+0 -13 Td (      name: "",) Tj
+0 -13 Td (      sku: "",) Tj
+0 -13 Td (      description: "",) Tj
+0 -13 Td (      price: 0,) Tj
+ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 20 0 R >>
+endobj
+22 0 obj
+<< /Length 2234 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(      cost: 0,) Tj
+0 -13 Td (      stock: 0,) Tj
+0 -13 Td (      minStock: 5,) Tj
+0 -13 Td (      currency: "DOP",) Tj
+0 -13 Td (      category: "",) Tj
+0 -13 Td (      catalog: "",) Tj
+0 -13 Td (      status: "draft",) Tj
+0 -13 Td (      taxable: true,) Tj
+0 -13 Td (      featured: false,) Tj
+0 -13 Td (      colors: [],) Tj
+0 -13 Td (      sizes: [],) Tj
+0 -13 Td (      imagesBase64: [],) Tj
+0 -13 Td (    },) Tj
+0 -13 Td (    mode: "onBlur",) Tj
+0 -13 Td (  }\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  const onSubmit = async \(values\) => {) Tj
+0 -13 Td (    const payload = {) Tj
+0 -13 Td (      ...values,) Tj
+0 -13 Td (      images_base64: values.imagesBase64,) Tj
+0 -13 Td (      min_stock: values.minStock,) Tj
+0 -13 Td (    };) Tj
+0 -13 Td () Tj
+0 -13 Td (    try {) Tj
+0 -13 Td (      const response = await vendorProductService.create\(payload\);) Tj
+0 -13 Td (      if \(onSaved\) onSaved\(response\);) Tj
+0 -13 Td (      reset\(values\);) Tj
+0 -13 Td (    } catch \(err\) {) Tj
+0 -13 Td (      throw new Error\(err?.message || "No se pudo guardar el producto"\);) Tj
+0 -13 Td (    }) Tj
+0 -13 Td (  };) Tj
+0 -13 Td () Tj
+0 -13 Td (  const price = watch\("price"\);) Tj
+0 -13 Td (  const cost = watch\("cost"\);) Tj
+0 -13 Td (  const margin = price > 0 ? \(\(\(price - cost\) / price\) * 100\).toFixed\(2\) : "0.00";) Tj
+0 -13 Td () Tj
+0 -13 Td (  return \() Tj
+0 -13 Td (    <form onSubmit={handleSubmit\(onSubmit\)} noValidate>) Tj
+0 -13 Td (      <label>) Tj
+0 -13 Td (        Nombre) Tj
+0 -13 Td (        <input type="text" {...register\("name"\)} />) Tj
+0 -13 Td (        {errors.name && <span>{errors.name.message}</span>}) Tj
+0 -13 Td (      </label>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <label>) Tj
+0 -13 Td (        SKU) Tj
+0 -13 Td (        <input type="text" {...register\("sku"\)} />) Tj
+0 -13 Td (        {errors.sku && <span>{errors.sku.message}</span>}) Tj
+0 -13 Td (      </label>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <label>) Tj
+0 -13 Td (        Precio) Tj
+0 -13 Td (        <input type="number" step="0.01" {...register\("price"\)} />) Tj
+0 -13 Td (        {errors.price && <span>{errors.price.message}</span>}) Tj
+0 -13 Td (      </label>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <label>) Tj
+ET
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 22 0 R >>
+endobj
+24 0 obj
+<< /Length 2425 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(        Costo) Tj
+0 -13 Td (        <input type="number" step="0.01" {...register\("cost"\)} />) Tj
+0 -13 Td (        {errors.cost && <span>{errors.cost.message}</span>}) Tj
+0 -13 Td (      </label>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <label>) Tj
+0 -13 Td (        Moneda) Tj
+0 -13 Td (        <input type="text" maxLength={3} {...register\("currency"\)} />) Tj
+0 -13 Td (        {errors.currency && <span>{errors.currency.message}</span>}) Tj
+0 -13 Td (      </label>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <Controller) Tj
+0 -13 Td (        control={control}) Tj
+0 -13 Td (        name="taxable") Tj
+0 -13 Td (        render={\({ field }\) => \() Tj
+0 -13 Td (          <label>) Tj
+0 -13 Td (            Aplicar ITBIS) Tj
+0 -13 Td (            <input) Tj
+0 -13 Td (              type="checkbox") Tj
+0 -13 Td (              checked={field.value}) Tj
+0 -13 Td (              onChange={\(e\) => field.onChange\(e.target.checked\)}) Tj
+0 -13 Td (            />) Tj
+0 -13 Td (          </label>) Tj
+0 -13 Td (        \)}) Tj
+0 -13 Td (      />) Tj
+0 -13 Td () Tj
+0 -13 Td (      <p>Margen estimado: {margin}%</p>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <button type="submit" disabled={isSubmitting || !isDirty}>) Tj
+0 -13 Td (        {isSubmitting ? "Guardando..." : "Guardar producto"}) Tj
+0 -13 Td (      </button>) Tj
+0 -13 Td (    </form>) Tj
+0 -13 Td (  \);) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (3.5 COMPONENTES DE VISUALIZACIÓN DE DATOS AVANZADOS) Tj
+0 -13 Td () Tj
+0 -13 Td (Implementación recomendada de tabla con `@tanstack/react-table` y paginación/ordenamiento ) Tj
+0 -13 Td (server-side:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import React, { useEffect, useMemo, useState } from "react";) Tj
+0 -13 Td (import {) Tj
+0 -13 Td (  useReactTable,) Tj
+0 -13 Td (  getCoreRowModel,) Tj
+0 -13 Td (  flexRender,) Tj
+0 -13 Td (} from "@tanstack/react-table";) Tj
+0 -13 Td (import vendorProductService from "../../services/odoo/vendorProductService";) Tj
+0 -13 Td () Tj
+0 -13 Td (export default function VendorProductsTable\(\) {) Tj
+0 -13 Td (  const [rows, setRows] = useState\([]\);) Tj
+0 -13 Td (  const [total, setTotal] = useState\(0\);) Tj
+0 -13 Td (  const [loading, setLoading] = useState\(false\);) Tj
+0 -13 Td (  const [sorting, setSorting] = useState\([]\);) Tj
+0 -13 Td (  const [pagination, setPagination] = useState\({ pageIndex: 0, pageSize: 20 }\);) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+25 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 24 0 R >>
+endobj
+26 0 obj
+<< /Length 2487 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(  const columns = useMemo\() Tj
+0 -13 Td (    \(\) => [) Tj
+0 -13 Td (      { accessorKey: "id", header: "ID" },) Tj
+0 -13 Td (      { accessorKey: "name", header: "Producto" },) Tj
+0 -13 Td (      { accessorKey: "catalog", header: "Catálogo" },) Tj
+0 -13 Td (      { accessorKey: "price", header: "Precio" },) Tj
+0 -13 Td (      { accessorKey: "stock", header: "Stock" },) Tj
+0 -13 Td (      { accessorKey: "status", header: "Estado" },) Tj
+0 -13 Td (    ],) Tj
+0 -13 Td (    []) Tj
+0 -13 Td (  \);) Tj
+0 -13 Td () Tj
+0 -13 Td (  useEffect\(\(\) => {) Tj
+0 -13 Td (    const controller = new AbortController\(\);) Tj
+0 -13 Td (    const load = async \(\) => {) Tj
+0 -13 Td (      setLoading\(true\);) Tj
+0 -13 Td (      try {) Tj
+0 -13 Td (        const sort = sorting[0];) Tj
+0 -13 Td (        const sortField = sort?.id || "id";) Tj
+0 -13 Td (        const sortDir = sort?.desc ? "desc" : "asc";) Tj
+0 -13 Td (        const offset = pagination.pageIndex * pagination.pageSize;) Tj
+0 -13 Td () Tj
+0 -13 Td (        const response = await vendorProductService.list\({) Tj
+0 -13 Td (          limit: pagination.pageSize,) Tj
+0 -13 Td (          offset,) Tj
+0 -13 Td (          sort: `${sortField}:${sortDir}`,) Tj
+0 -13 Td (          signal: controller.signal,) Tj
+0 -13 Td (        }\);) Tj
+0 -13 Td () Tj
+0 -13 Td (        setRows\(Array.isArray\(response?.items\) ? response.items : response || []\);) Tj
+0 -13 Td (        setTotal\(Number\(response?.total || 0\)\);) Tj
+0 -13 Td (      } catch \(err\) {) Tj
+0 -13 Td (        if \(err?.name !== "AbortError"\) {) Tj
+0 -13 Td (          setRows\([]\);) Tj
+0 -13 Td (          setTotal\(0\);) Tj
+0 -13 Td (        }) Tj
+0 -13 Td (      } finally {) Tj
+0 -13 Td (        setLoading\(false\);) Tj
+0 -13 Td (      }) Tj
+0 -13 Td (    };) Tj
+0 -13 Td (    load\(\);) Tj
+0 -13 Td (    return \(\) => controller.abort\(\);) Tj
+0 -13 Td (  }, [sorting, pagination]\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  const table = useReactTable\({) Tj
+0 -13 Td (    data: rows,) Tj
+0 -13 Td (    columns,) Tj
+0 -13 Td (    manualPagination: true,) Tj
+0 -13 Td (    manualSorting: true,) Tj
+0 -13 Td (    pageCount: Math.ceil\(total / pagination.pageSize\) || 1,) Tj
+0 -13 Td (    state: { sorting, pagination },) Tj
+0 -13 Td (    onSortingChange: setSorting,) Tj
+0 -13 Td (    onPaginationChange: setPagination,) Tj
+0 -13 Td (    getCoreRowModel: getCoreRowModel\(\),) Tj
+0 -13 Td (  }\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  return \() Tj
+ET
+endstream
+endobj
+27 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 26 0 R >>
+endobj
+28 0 obj
+<< /Length 2307 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(    <div>) Tj
+0 -13 Td (      {loading && <p>Cargando...</p>}) Tj
+0 -13 Td (      <table>) Tj
+0 -13 Td (        <thead>) Tj
+0 -13 Td (          {table.getHeaderGroups\(\).map\(\(hg\) => \() Tj
+0 -13 Td (            <tr key={hg.id}>) Tj
+0 -13 Td (              {hg.headers.map\(\(h\) => \() Tj
+0 -13 Td (                <th) Tj
+0 -13 Td (                  key={h.id}) Tj
+0 -13 Td (                  onClick={h.column.getToggleSortingHandler\(\)}) Tj
+0 -13 Td (                  style={{ cursor: "pointer" }}) Tj
+0 -13 Td (                >) Tj
+0 -13 Td (                  {flexRender\(h.column.columnDef.header, h.getContext\(\)\)}) Tj
+0 -13 Td (                </th>) Tj
+0 -13 Td (              \)\)}) Tj
+0 -13 Td (            </tr>) Tj
+0 -13 Td (          \)\)}) Tj
+0 -13 Td (        </thead>) Tj
+0 -13 Td (        <tbody>) Tj
+0 -13 Td (          {table.getRowModel\(\).rows.map\(\(r\) => \() Tj
+0 -13 Td (            <tr key={r.id}>) Tj
+0 -13 Td (              {r.getVisibleCells\(\).map\(\(c\) => \() Tj
+0 -13 Td (                <td key={c.id}>{flexRender\(c.column.columnDef.cell, c.getContext\(\)\)}</td>) Tj
+0 -13 Td (              \)\)}) Tj
+0 -13 Td (            </tr>) Tj
+0 -13 Td (          \)\)}) Tj
+0 -13 Td (        </tbody>) Tj
+0 -13 Td (      </table>) Tj
+0 -13 Td () Tj
+0 -13 Td (      <div>) Tj
+0 -13 Td (        <button onClick={\(\) => table.previousPage\(\)} disabled={!table.getCanPreviousPage\(\)}>) Tj
+0 -13 Td (          Anterior) Tj
+0 -13 Td (        </button>) Tj
+0 -13 Td (        <span>) Tj
+0 -13 Td (          Página {pagination.pageIndex + 1} de {table.getPageCount\(\)}) Tj
+0 -13 Td (        </span>) Tj
+0 -13 Td (        <button onClick={\(\) => table.nextPage\(\)} disabled={!table.getCanNextPage\(\)}>) Tj
+0 -13 Td (          Siguiente) Tj
+0 -13 Td (        </button>) Tj
+0 -13 Td (      </div>) Tj
+0 -13 Td (    </div>) Tj
+0 -13 Td (  \);) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (Y ejemplo completo con `recharts` para tendencia financiera:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import React from "react";) Tj
+0 -13 Td (import {) Tj
+0 -13 Td (  ResponsiveContainer,) Tj
+0 -13 Td (  LineChart,) Tj
+0 -13 Td (  Line,) Tj
+0 -13 Td (  CartesianGrid,) Tj
+0 -13 Td (  XAxis,) Tj
+0 -13 Td (  YAxis,) Tj
+0 -13 Td (  Tooltip,) Tj
+ET
+endstream
+endobj
+29 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 28 0 R >>
+endobj
+30 0 obj
+<< /Length 2607 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(  Legend,) Tj
+0 -13 Td (} from "recharts";) Tj
+0 -13 Td () Tj
+0 -13 Td (const money = \(value\) =>) Tj
+0 -13 Td (  new Intl.NumberFormat\("es-DO", { style: "currency", currency: "DOP" }\).format\(Number\(value || ) Tj
+0 -13 Td (0\)\);) Tj
+0 -13 Td () Tj
+0 -13 Td (export default function RevenueTrendChart\({ data }\) {) Tj
+0 -13 Td (  const safeData = Array.isArray\(data\) ? data : [];) Tj
+0 -13 Td (  return \() Tj
+0 -13 Td (    <div style={{ width: "100%", height: 320 }}>) Tj
+0 -13 Td (      <ResponsiveContainer>) Tj
+0 -13 Td (        <LineChart data={safeData} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>) Tj
+0 -13 Td (          <CartesianGrid strokeDasharray="3 3" />) Tj
+0 -13 Td (          <XAxis dataKey="period" />) Tj
+0 -13 Td (          <YAxis tickFormatter={money} />) Tj
+0 -13 Td (          <Tooltip formatter={\(v\) => money\(v\)} />) Tj
+0 -13 Td (          <Legend />) Tj
+0 -13 Td (          <Line) Tj
+0 -13 Td (            type="monotone") Tj
+0 -13 Td (            dataKey="gross") Tj
+0 -13 Td (            name="Ventas brutas") Tj
+0 -13 Td (            stroke="#2563eb") Tj
+0 -13 Td (            strokeWidth={2}) Tj
+0 -13 Td (            dot={false}) Tj
+0 -13 Td (          />) Tj
+0 -13 Td (          <Line) Tj
+0 -13 Td (            type="monotone") Tj
+0 -13 Td (            dataKey="net") Tj
+0 -13 Td (            name="Ventas netas") Tj
+0 -13 Td (            stroke="#0891b2") Tj
+0 -13 Td (            strokeWidth={2}) Tj
+0 -13 Td (            dot={false}) Tj
+0 -13 Td (          />) Tj
+0 -13 Td (        </LineChart>) Tj
+0 -13 Td (      </ResponsiveContainer>) Tj
+0 -13 Td (    </div>) Tj
+0 -13 Td (  \);) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 4: MIDDLEWARE Y API GATEWAY \(FLASK\)) Tj
+0 -13 Td () Tj
+0 -13 Td (4.1 DISEÑO Y ESTRUCTURA DEL SERVIDOR FLASK) Tj
+0 -13 Td () Tj
+0 -13 Td (La aplicación utiliza factoría `create_app` y carga de entorno con `python-dotenv` en ) Tj
+0 -13 Td (`backend/app/config.py`. Puntos técnicos clave:) Tj
+0 -13 Td () Tj
+0 -13 Td (- `BASE_DIR` y `load_dotenv` apuntan explícitamente al `.env` de backend para evitar dependencias ) Tj
+0 -13 Td (del CWD.) Tj
+0 -13 Td (- Configuración tipada para JWT, Odoo, Stripe, Google SSO, SMTP, WhatsApp.) Tj
+0 -13 Td (- Registro modular de blueprints por dominio \(`auth`, `vendor_*`, `admin_*`, `payments`, ) Tj
+0 -13 Td (`currencies`, `whatsapp`\).) Tj
+0 -13 Td (- `CORS` centralizado.) Tj
+0 -13 Td (- Logging adaptado a Gunicorn y fallback a stdout.) Tj
+0 -13 Td () Tj
+0 -13 Td (4.2 IMPLEMENTACIÓN EXHAUSTIVA DEL CLIENTE JSON-RPC CON ODOO 19) Tj
+ET
+endstream
+endobj
+31 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 30 0 R >>
+endobj
+32 0 obj
+<< /Length 2500 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (Código completo de `backend/app/odoo/client.py`:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (""") Tj
+0 -13 Td (Odoo JSON-RPC client ? compatible con Odoo 19.) Tj
+0 -13 Td (Reemplaza XML-RPC que fue deprecado en Odoo 19.) Tj
+0 -13 Td (""") Tj
+0 -13 Td (import time) Tj
+0 -13 Td (import requests) Tj
+0 -13 Td (from flask import current_app) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (class OdooClient:) Tj
+0 -13 Td (    def __init__\(self\):) Tj
+0 -13 Td (        self._session = requests.Session\(\)) Tj
+0 -13 Td (        self._uid = None) Tj
+0 -13 Td (        self._last_auth_ts = 0.0) Tj
+0 -13 Td (        self._session_ttl = 20 * 60) Tj
+0 -13 Td () Tj
+0 -13 Td (    def _cfg\(self\):) Tj
+0 -13 Td (        return {) Tj
+0 -13 Td (            "url": current_app.config["ODOO_URL"],) Tj
+0 -13 Td (            "db": current_app.config["ODOO_DB"],) Tj
+0 -13 Td (            "user": current_app.config["ODOO_USER"],) Tj
+0 -13 Td (            "password": current_app.config["ODOO_PASSWORD"],) Tj
+0 -13 Td (        }) Tj
+0 -13 Td () Tj
+0 -13 Td (    def _rpc\(self, endpoint: str, params: dict, session: requests.Session | None = None\):) Tj
+0 -13 Td (        cfg = self._cfg\(\)) Tj
+0 -13 Td (        payload = {) Tj
+0 -13 Td (            "jsonrpc": "2.0",) Tj
+0 -13 Td (            "method": "call",) Tj
+0 -13 Td (            "id": 1,) Tj
+0 -13 Td (            "params": params,) Tj
+0 -13 Td (        }) Tj
+0 -13 Td (        sess = session or self._session) Tj
+0 -13 Td (        try:) Tj
+0 -13 Td (            resp = sess.post\() Tj
+0 -13 Td (                f"{cfg['url']}{endpoint}",) Tj
+0 -13 Td (                json=payload,) Tj
+0 -13 Td (                timeout=15,) Tj
+0 -13 Td (                headers={"Content-Type": "application/json"},) Tj
+0 -13 Td (            \)) Tj
+0 -13 Td (            data = resp.json\(\)) Tj
+0 -13 Td (        except requests.exceptions.ConnectionError:) Tj
+0 -13 Td (            raise ConnectionError\(f"Cannot connect to Odoo at {cfg['url']}"\)) Tj
+0 -13 Td (        except requests.exceptions.Timeout:) Tj
+0 -13 Td (            raise TimeoutError\("Odoo request timed out"\)) Tj
+0 -13 Td () Tj
+0 -13 Td (        if "error" in data:) Tj
+0 -13 Td (            msg = \() Tj
+0 -13 Td (                data["error"].get\("data", {}\).get\("message"\)) Tj
+0 -13 Td (                or data["error"].get\("message", "Odoo error"\)) Tj
+0 -13 Td (            \)) Tj
+0 -13 Td (            raise RuntimeError\(msg\)) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+33 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 32 0 R >>
+endobj
+34 0 obj
+<< /Length 2878 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(        return data.get\("result"\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def authenticate\() Tj
+0 -13 Td (        self,) Tj
+0 -13 Td (        username: str | None = None,) Tj
+0 -13 Td (        password: str | None = None,) Tj
+0 -13 Td (        persist: bool = True,) Tj
+0 -13 Td (        session: requests.Session | None = None,) Tj
+0 -13 Td (    \) -> int:) Tj
+0 -13 Td (        cfg = self._cfg\(\)) Tj
+0 -13 Td (        sess = session or \(self._session if persist else requests.Session\(\)\)) Tj
+0 -13 Td (        try:) Tj
+0 -13 Td (            result = self._rpc\() Tj
+0 -13 Td (                "/web/session/authenticate",) Tj
+0 -13 Td (                {) Tj
+0 -13 Td (                    "db": cfg["db"],) Tj
+0 -13 Td (                    "login": username or cfg["user"],) Tj
+0 -13 Td (                    "password": password or cfg["password"],) Tj
+0 -13 Td (                },) Tj
+0 -13 Td (                session=sess,) Tj
+0 -13 Td (            \)) Tj
+0 -13 Td (        except RuntimeError as exc:) Tj
+0 -13 Td (            msg = str\(exc\)) Tj
+0 -13 Td (            if "Access Denied" in msg or "Access denied" in msg:) Tj
+0 -13 Td (                raise PermissionError\("Odoo authentication failed"\) from exc) Tj
+0 -13 Td (            raise) Tj
+0 -13 Td (        uid = result.get\("uid"\) if result else None) Tj
+0 -13 Td (        if not uid:) Tj
+0 -13 Td (            raise PermissionError\("Odoo authentication failed"\)) Tj
+0 -13 Td (        return uid) Tj
+0 -13 Td () Tj
+0 -13 Td (    def _ensure_session\(self\) -> tuple[requests.Session, int]:) Tj
+0 -13 Td (        now = time.time\(\)) Tj
+0 -13 Td (        if self._uid and \(now - self._last_auth_ts\) < self._session_ttl:) Tj
+0 -13 Td (            return self._session, self._uid) Tj
+0 -13 Td () Tj
+0 -13 Td (        self._session = requests.Session\(\)) Tj
+0 -13 Td (        self._uid = self.authenticate\(session=self._session, persist=False\)) Tj
+0 -13 Td (        self._last_auth_ts = now) Tj
+0 -13 Td (        return self._session, self._uid) Tj
+0 -13 Td () Tj
+0 -13 Td (    def call\(self, model: str, method: str, args: list, kwargs: dict = None\):) Tj
+0 -13 Td (        cfg = self._cfg\(\)) Tj
+0 -13 Td () Tj
+0 -13 Td (        def _call_with_session\(session: requests.Session, uid: int\):) Tj
+0 -13 Td (            return self._rpc\() Tj
+0 -13 Td (                "/web/dataset/call_kw",) Tj
+0 -13 Td (                {) Tj
+0 -13 Td (                    "model": model,) Tj
+0 -13 Td (                    "method": method,) Tj
+0 -13 Td (                    "args": args,) Tj
+0 -13 Td (                    "kwargs": kwargs or {},) Tj
+0 -13 Td (                    "db": cfg["db"],) Tj
+0 -13 Td (                    "uid": uid,) Tj
+0 -13 Td (                    "password": cfg["password"],) Tj
+0 -13 Td (                },) Tj
+0 -13 Td (                session=session,) Tj
+ET
+endstream
+endobj
+35 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 34 0 R >>
+endobj
+36 0 obj
+<< /Length 2765 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(            \)) Tj
+0 -13 Td () Tj
+0 -13 Td (        session, uid = self._ensure_session\(\)) Tj
+0 -13 Td (        try:) Tj
+0 -13 Td (            return _call_with_session\(session, uid\)) Tj
+0 -13 Td (        except RuntimeError as exc:) Tj
+0 -13 Td (            msg = str\(exc\)) Tj
+0 -13 Td (            if "Session expired" in msg or "Access denied" in msg:) Tj
+0 -13 Td (                self._uid = None) Tj
+0 -13 Td (                session, uid = self._ensure_session\(\)) Tj
+0 -13 Td (                return _call_with_session\(session, uid\)) Tj
+0 -13 Td (            raise) Tj
+0 -13 Td () Tj
+0 -13 Td (    def search_read\() Tj
+0 -13 Td (        self,) Tj
+0 -13 Td (        model: str,) Tj
+0 -13 Td (        domain: list,) Tj
+0 -13 Td (        fields: list,) Tj
+0 -13 Td (        limit: int = 100,) Tj
+0 -13 Td (        offset: int = 0,) Tj
+0 -13 Td (        order: str = None,) Tj
+0 -13 Td (    \) -> list:) Tj
+0 -13 Td (        kwargs = {"fields": fields, "limit": limit, "offset": offset}) Tj
+0 -13 Td (        if order:) Tj
+0 -13 Td (            kwargs["order"] = order) Tj
+0 -13 Td (        return self.call\(model, "search_read", [domain], kwargs\) or []) Tj
+0 -13 Td () Tj
+0 -13 Td (    def read\(self, model: str, ids: list, fields: list\) -> list:) Tj
+0 -13 Td (        return self.call\(model, "read", [ids], {"fields": fields}\) or []) Tj
+0 -13 Td () Tj
+0 -13 Td (    def search\(self, model: str, domain: list\) -> list:) Tj
+0 -13 Td (        return self.call\(model, "search", [domain]\) or []) Tj
+0 -13 Td () Tj
+0 -13 Td (    def create\(self, model: str, values: dict\) -> int:) Tj
+0 -13 Td (        return self.call\(model, "create", [values]\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def write\(self, model: str, ids: list, values: dict\) -> bool:) Tj
+0 -13 Td (        return self.call\(model, "write", [ids, values]\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def unlink\(self, model: str, ids: list\) -> bool:) Tj
+0 -13 Td (        return self.call\(model, "unlink", [ids]\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def search_count\(self, model: str, domain: list\) -> int:) Tj
+0 -13 Td (        return self.call\(model, "search_count", [domain]\) or 0) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (odoo = OdooClient\(\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (Detalles críticos de operación:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Autenticación: `POST /web/session/authenticate` devuelve `uid` y cookie de sesión.) Tj
+0 -13 Td (- Persistencia de sesión: `requests.Session` conserva cookies automáticamente.) Tj
+0 -13 Td (- TTL: `_ensure_session` evita reautenticar por cada llamada.) Tj
+0 -13 Td (- Recuperación: si Odoo responde `Session expired` o `Access denied`, invalida `_uid` y reintenta ) Tj
+0 -13 Td (una vez.) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+37 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 36 0 R >>
+endobj
+38 0 obj
+<< /Length 2576 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(4.3 RUTAS Y CONTROLADORES) Tj
+0 -13 Td () Tj
+0 -13 Td (Ejemplos reales:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Auth: `backend/app/router/auth.py`.) Tj
+0 -13 Td (- Vendor products: `backend/app/router/vendor_products.py`.) Tj
+0 -13 Td (- Vendor profile: `backend/app/router/vendor_profile.py`.) Tj
+0 -13 Td (- Payments + webhook: `backend/app/router/payments.py`.) Tj
+0 -13 Td () Tj
+0 -13 Td (Ejemplo de endpoint de perfil de vendedor:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (from flask import Blueprint, request) Tj
+0 -13 Td (from flask.views import MethodView) Tj
+0 -13 Td (from ..middleware.auth_guard import jwt_required) Tj
+0 -13 Td (from ..odoo.vendor_profile import get_vendor_profile, update_vendor_profile) Tj
+0 -13 Td (from ..utils.response import error, success) Tj
+0 -13 Td () Tj
+0 -13 Td (bp = Blueprint\("vendor_profile", __name__\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (class VendorProfileAPI\(MethodView\):) Tj
+0 -13 Td (    decorators = [jwt_required]) Tj
+0 -13 Td () Tj
+0 -13 Td (    def get\(self\):) Tj
+0 -13 Td (        payload = getattr\(request, "jwt_payload", None\) or {}) Tj
+0 -13 Td (        uid = payload.get\("uid"\)) Tj
+0 -13 Td (        if not uid:) Tj
+0 -13 Td (            return error\("Missing or invalid token", 401\)) Tj
+0 -13 Td (        try:) Tj
+0 -13 Td (            return success\(get_vendor_profile\(int\(uid\)\)\)) Tj
+0 -13 Td (        except LookupError as exc:) Tj
+0 -13 Td (            return error\(str\(exc\), 404\)) Tj
+0 -13 Td (        except Exception as exc:) Tj
+0 -13 Td (            return error\(str\(exc\), 500\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def patch\(self\):) Tj
+0 -13 Td (        payload = getattr\(request, "jwt_payload", None\) or {}) Tj
+0 -13 Td (        uid = payload.get\("uid"\)) Tj
+0 -13 Td (        if not uid:) Tj
+0 -13 Td (            return error\("Missing or invalid token", 401\)) Tj
+0 -13 Td (        data = request.get_json\(\) or {}) Tj
+0 -13 Td (        try:) Tj
+0 -13 Td (            return success\(update_vendor_profile\(int\(uid\), data\)\)) Tj
+0 -13 Td (        except LookupError as exc:) Tj
+0 -13 Td (            return error\(str\(exc\), 404\)) Tj
+0 -13 Td (        except Exception as exc:) Tj
+0 -13 Td (            return error\(str\(exc\), 500\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    def put\(self\):) Tj
+0 -13 Td (        return self.patch\(\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (bp.add_url_rule\("", view_func=VendorProfileAPI.as_view\("vendor_profile"\)\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (4.4 AUTENTICACIÓN HÍBRIDA \(JWT + GOOGLE SSO\)) Tj
+ET
+endstream
+endobj
+39 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 38 0 R >>
+endobj
+40 0 obj
+<< /Length 2429 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (Flujo JWT:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Login contra Odoo.) Tj
+0 -13 Td (- Emisión de access token \(`exp` en horas\) y refresh token \(`exp` en días\).) Tj
+0 -13 Td (- Decorador `jwt_required` valida firma, expiración y presencia de `uid`.) Tj
+0 -13 Td () Tj
+0 -13 Td (Flujo Google SSO:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Frontend envía `credential` \(ID token de Google Identity Services\).) Tj
+0 -13 Td (- Backend valida firma y claims con `google-auth`.) Tj
+0 -13 Td (- Si usuario no existe, lo aprovisiona en Odoo.) Tj
+0 -13 Td (- Emite JWT local para sesión del portal.) Tj
+0 -13 Td () Tj
+0 -13 Td (Función de verificación Google \(real\):) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (from google.auth.transport import requests as google_requests) Tj
+0 -13 Td (from google.oauth2 import id_token as google_id_token) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def verify_google_id_token\(*, credential: str, client_id: str\) -> dict:) Tj
+0 -13 Td (    if not client_id:) Tj
+0 -13 Td (        raise ValueError\("GOOGLE_CLIENT_ID is not configured"\)) Tj
+0 -13 Td (    if not credential:) Tj
+0 -13 Td (        raise ValueError\("Missing Google credential"\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    payload = google_id_token.verify_oauth2_token\() Tj
+0 -13 Td (        credential,) Tj
+0 -13 Td (        google_requests.Request\(\),) Tj
+0 -13 Td (        client_id,) Tj
+0 -13 Td (    \)) Tj
+0 -13 Td (    return dict\(payload or {}\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 5: CORE ERP Y PERSISTENCIA \(ODOO 19\)) Tj
+0 -13 Td () Tj
+0 -13 Td (5.1 MODELO PERSONALIZADO `CATALOG.VENDOR`) Tj
+0 -13 Td () Tj
+0 -13 Td (Campos clave implementados en `backend/odoo_module/models/vendor.py`:) Tj
+0 -13 Td () Tj
+0 -13 Td (- `store_name` \(`Char`, requerido\).) Tj
+0 -13 Td (- `status` \(`Selection`: `pending`, `active`, `suspended`\).) Tj
+0 -13 Td (- `partner_id` \(`Many2one` a `res.partner`, requerido y único por SQL constraint\).) Tj
+0 -13 Td (- `user_id` \(`Many2one` a `res.users`\).) Tj
+0 -13 Td () Tj
+0 -13 Td (Consulta y creación desde Flask vía RPC \(`backend/app/odoo/vendor_profile.py`\):) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (from .client import odoo) Tj
+0 -13 Td (from .users import UserService, get_user_by_id) Tj
+0 -13 Td () Tj
+0 -13 Td (VENDOR_FIELDS = [) Tj
+0 -13 Td (    "id",) Tj
+0 -13 Td (    "store_name",) Tj
+0 -13 Td (    "status",) Tj
+0 -13 Td (    "email",) Tj
+ET
+endstream
+endobj
+41 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 40 0 R >>
+endobj
+42 0 obj
+<< /Length 2348 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(    "phone",) Tj
+0 -13 Td (    "partner_id",) Tj
+0 -13 Td (    "user_id",) Tj
+0 -13 Td (]) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def _get_vendor_record\(uid: int\) -> dict | None:) Tj
+0 -13 Td (    vendor_rows = odoo.search_read\() Tj
+0 -13 Td (        "catalog.vendor",) Tj
+0 -13 Td (        [["user_id", "=", uid]],) Tj
+0 -13 Td (        VENDOR_FIELDS,) Tj
+0 -13 Td (        limit=1,) Tj
+0 -13 Td (    \)) Tj
+0 -13 Td (    if vendor_rows:) Tj
+0 -13 Td (        return vendor_rows[0]) Tj
+0 -13 Td () Tj
+0 -13 Td (    partner_id = UserService.resolve_partner_id\(uid\)) Tj
+0 -13 Td (    if not partner_id:) Tj
+0 -13 Td (        return None) Tj
+0 -13 Td () Tj
+0 -13 Td (    vendor_rows = odoo.search_read\() Tj
+0 -13 Td (        "catalog.vendor",) Tj
+0 -13 Td (        [["partner_id", "=", partner_id]],) Tj
+0 -13 Td (        VENDOR_FIELDS,) Tj
+0 -13 Td (        limit=1,) Tj
+0 -13 Td (    \)) Tj
+0 -13 Td (    return vendor_rows[0] if vendor_rows else None) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def get_vendor_profile\(uid: int\) -> dict:) Tj
+0 -13 Td (    user = get_user_by_id\(uid\)) Tj
+0 -13 Td (    vendor = _get_vendor_record\(uid\)) Tj
+0 -13 Td (    return {"user": user, "vendor": vendor}) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def update_vendor_profile\(uid: int, payload: dict\) -> dict:) Tj
+0 -13 Td (    user = get_user_by_id\(uid\)) Tj
+0 -13 Td (    vendor = _get_vendor_record\(uid\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    store_name = payload.get\("store_name"\) or payload.get\("storeName"\)) Tj
+0 -13 Td (    email = payload.get\("email"\)) Tj
+0 -13 Td (    phone = payload.get\("phone"\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    values = {}) Tj
+0 -13 Td (    if store_name is not None:) Tj
+0 -13 Td (        values["store_name"] = str\(store_name\).strip\(\)) Tj
+0 -13 Td (    if email is not None:) Tj
+0 -13 Td (        values["email"] = str\(email\).strip\(\)) Tj
+0 -13 Td (    if phone is not None:) Tj
+0 -13 Td (        values["phone"] = str\(phone\).strip\(\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    if values:) Tj
+0 -13 Td (        if not vendor:) Tj
+0 -13 Td (            partner_id = UserService.resolve_partner_id\(uid\)) Tj
+0 -13 Td (            if not partner_id:) Tj
+0 -13 Td (                raise LookupError\("Vendor partner not found"\)) Tj
+0 -13 Td (            vendor_id = odoo.create\() Tj
+ET
+endstream
+endobj
+43 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 42 0 R >>
+endobj
+44 0 obj
+<< /Length 2828 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(                "catalog.vendor",) Tj
+0 -13 Td (                {) Tj
+0 -13 Td (                    "partner_id": partner_id,) Tj
+0 -13 Td (                    "user_id": uid,) Tj
+0 -13 Td (                    "store_name": values.get\("store_name"\) or user.get\("name"\) or "Vendedor",) Tj
+0 -13 Td (                    "status": "pending",) Tj
+0 -13 Td (                },) Tj
+0 -13 Td (            \)) Tj
+0 -13 Td (            if email or phone:) Tj
+0 -13 Td (                odoo.write\("catalog.vendor", [vendor_id], values\)) Tj
+0 -13 Td (        else:) Tj
+0 -13 Td (            odoo.write\("catalog.vendor", [vendor["id"]], values\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    return get_vendor_profile\(uid\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (5.2 CATÁLOGO DE VENDEDORES Y AISLAMIENTO DE PRODUCTOS) Tj
+0 -13 Td () Tj
+0 -13 Td (El aislamiento se logra por composición:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Cada `product.template` tiene `catalog_id`.) Tj
+0 -13 Td (- Cada `catalog.catalog` tiene `vendor_id` \(`res.partner`\).) Tj
+0 -13 Td (- `VendorProductService` lista por `catalog_id in vendor_catalog_ids`.) Tj
+0 -13 Td (- En detalle/edición, se valida ownership comparando vendor del catálogo con partner autenticado.) Tj
+0 -13 Td () Tj
+0 -13 Td (En `backend/odoo_module/models/product.py`, al crear producto sin catálogo explícito, se intenta ) Tj
+0 -13 Td (autovincular al catálogo del vendedor conectado, o crear catálogo por defecto.) Tj
+0 -13 Td () Tj
+0 -13 Td (5.3 MÓDULO DE MONEDAS Y CONVERSIÓN EN TIEMPO REAL) Tj
+0 -13 Td () Tj
+0 -13 Td (`backend/app/odoo/currencies.py` implementa:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Normalización: `"RD$"` se transforma a `"DOP"`.) Tj
+0 -13 Td (- Cache local en memoria con TTL de 10 minutos \(`_CACHE_TTL_SECONDS = 10 * 60`\).) Tj
+0 -13 Td (- Refresco por `_refresh_cache\(\)` leyendo `res.currency`.) Tj
+0 -13 Td (- Resolución robusta de ID \(`resolve_currency_id`\) con fallback a búsqueda puntual en Odoo.) Tj
+0 -13 Td () Tj
+0 -13 Td (Este diseño minimiza llamadas repetitivas para dropdowns de moneda, pero preserva coherencia ) Tj
+0 -13 Td (porque la invalidez de cache queda acotada a 10 minutos.) Tj
+0 -13 Td () Tj
+0 -13 Td (5.4 UTILIDADES DE MANEJO DE MONEDA) Tj
+0 -13 Td () Tj
+0 -13 Td (`backend/app/utils/money.py` usa `Decimal` y `ROUND_HALF_UP`:) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (from __future__ import annotations) Tj
+0 -13 Td () Tj
+0 -13 Td (from decimal import Decimal, ROUND_HALF_UP) Tj
+0 -13 Td () Tj
+0 -13 Td (from ..odoo.currencies import get_currency, normalize_currency_code) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def currency_decimals\(currency: str\) -> int:) Tj
+0 -13 Td (    try:) Tj
+0 -13 Td (        code = normalize_currency_code\(currency\)) Tj
+0 -13 Td (    except ValueError:) Tj
+0 -13 Td (        return 2) Tj
+ET
+endstream
+endobj
+45 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 44 0 R >>
+endobj
+46 0 obj
+<< /Length 2968 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(    meta = get_currency\(code\) or {}) Tj
+0 -13 Td (    try:) Tj
+0 -13 Td (        return int\(meta.get\("decimals", 2\)\)) Tj
+0 -13 Td (    except Exception:) Tj
+0 -13 Td (        return 2) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (def to_minor_units\(value: float | str | Decimal, currency: str\) -> int:) Tj
+0 -13 Td (    decimals = currency_decimals\(currency\)) Tj
+0 -13 Td (    amount = Decimal\(str\(value\)\)) Tj
+0 -13 Td (    factor = Decimal\(10\) ** Decimal\(decimals\)) Tj
+0 -13 Td (    return int\(\(amount * factor\).quantize\(Decimal\("1"\), rounding=ROUND_HALF_UP\)\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (Esto evita errores de redondeo binario flotante típicos de `float` cuando se convierte a centavos ) Tj
+0 -13 Td (para Stripe.) Tj
+0 -13 Td () Tj
+0 -13 Td (5.5 CICLO DE VIDA DE ÓRDENES Y FACTURACIÓN) Tj
+0 -13 Td () Tj
+0 -13 Td (Flujo operacional en `PaymentService`:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Construcción/actualización de `sale.order` y líneas.) Tj
+0 -13 Td (2. Confirmación \(`action_confirm`\) si está en draft/sent.) Tj
+0 -13 Td (3. Validación de pickings y decremento de stock de catálogo.) Tj
+0 -13 Td (4. Generación de factura por wizard `sale.advance.payment.inv`.) Tj
+0 -13 Td (5. Posteo/registro de pago con `account.payment.register`.) Tj
+0 -13 Td (6. Conciliación y actualización de `payment_state`.) Tj
+0 -13 Td () Tj
+0 -13 Td (Esto asegura que pedido, inventario y contabilidad evolucionen sincronizados.) Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 6: INTEGRACIÓN DE APIS EXTERNAS Y PROCESAMIENTO DE TRANSACCIONES) Tj
+0 -13 Td () Tj
+0 -13 Td (6.1 PASARELA STRIPE \(FLUJO COMPLETO\)) Tj
+0 -13 Td () Tj
+0 -13 Td (#### Flujo implementado actualmente) Tj
+0 -13 Td () Tj
+0 -13 Td (La base actual usa `Checkout Session` en `backend/app/stripe/service.py` y webhooks en ) Tj
+0 -13 Td (`backend/app/router/payments.py`:) Tj
+0 -13 Td () Tj
+0 -13 Td (- `payment_service.checkout` crea orden/factura y luego genera sesión Stripe.) Tj
+0 -13 Td (- El cliente recibe `checkout_url` y redirige.) Tj
+0 -13 Td (- Stripe notifica webhook firmado.) Tj
+0 -13 Td (- `handle_stripe_event` registra pago en Odoo vía wizard de pago.) Tj
+0 -13 Td () Tj
+0 -13 Td (#### Flujo objetivo con Stripe Elements + PaymentIntent) Tj
+0 -13 Td () Tj
+0 -13 Td (Si se requiere pasar a `PaymentIntent` + Elements en frontend, el flujo recomendado es:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Frontend monta `<PaymentElement>` o `<CardElement>`.) Tj
+0 -13 Td (2. Frontend solicita `/api/payments/create-payment-intent`.) Tj
+0 -13 Td (3. Backend calcula monto en minor units con `to_minor_units`.) Tj
+0 -13 Td (4. Backend crea PaymentIntent con metadata \(`odoo_order_id`, `odoo_invoice_id`\).) Tj
+0 -13 Td (5. Frontend confirma pago con `stripe.confirmPayment\(...\)`.) Tj
+0 -13 Td (6. Webhook `payment_intent.succeeded` marca factura como pagada en Odoo.) Tj
+0 -13 Td () Tj
+0 -13 Td (Ejemplo backend de creación de PaymentIntent:) Tj
+0 -13 Td () Tj
+ET
+endstream
+endobj
+47 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 46 0 R >>
+endobj
+48 0 obj
+<< /Length 2683 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (from flask import Blueprint, request) Tj
+0 -13 Td (from ..middleware.auth_guard import jwt_required) Tj
+0 -13 Td (from ..utils.response import success, error) Tj
+0 -13 Td (from ..utils.money import to_minor_units) Tj
+0 -13 Td (import stripe) Tj
+0 -13 Td (from flask import current_app) Tj
+0 -13 Td () Tj
+0 -13 Td (bp = Blueprint\("payment_intent", __name__\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (@bp.post\("/create-payment-intent"\)) Tj
+0 -13 Td (@jwt_required) Tj
+0 -13 Td (def create_payment_intent\(\):) Tj
+0 -13 Td (    data = request.get_json\(\) or {}) Tj
+0 -13 Td (    try:) Tj
+0 -13 Td (        amount = float\(data.get\("amount"\)\)) Tj
+0 -13 Td (        currency = str\(data.get\("currency"\) or "DOP"\).upper\(\)) Tj
+0 -13 Td (        order_id = int\(data.get\("order_id"\)\)) Tj
+0 -13 Td (        invoice_id = int\(data.get\("invoice_id"\)\)) Tj
+0 -13 Td (    except Exception:) Tj
+0 -13 Td (        return error\("Payload inválido", 400\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    stripe.api_key = current_app.config["STRIPE_SECRET_KEY"]) Tj
+0 -13 Td (    minor = to_minor_units\(amount, currency\)) Tj
+0 -13 Td (    if minor <= 0:) Tj
+0 -13 Td (        return error\("Monto inválido", 400\)) Tj
+0 -13 Td () Tj
+0 -13 Td (    try:) Tj
+0 -13 Td (        intent = stripe.PaymentIntent.create\() Tj
+0 -13 Td (            amount=minor,) Tj
+0 -13 Td (            currency=currency.lower\(\),) Tj
+0 -13 Td (            automatic_payment_methods={"enabled": True},) Tj
+0 -13 Td (            metadata={) Tj
+0 -13 Td (                "odoo_order_id": str\(order_id\),) Tj
+0 -13 Td (                "odoo_invoice_id": str\(invoice_id\),) Tj
+0 -13 Td (            },) Tj
+0 -13 Td (        \)) Tj
+0 -13 Td (        return success\({"client_secret": intent.client_secret, "id": intent.id}\)) Tj
+0 -13 Td (    except Exception as exc:) Tj
+0 -13 Td (        return error\(str\(exc\), 500\)) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (6.2 NOTIFICACIONES OMNI-CANAL \(WHATSAPP BUSINESS API / META CLOUD API\)) Tj
+0 -13 Td () Tj
+0 -13 Td (Catalogix incluye `backend/app/whatsapp/service.py`, `notifiers.py` y `webhook.py`.) Tj
+0 -13 Td () Tj
+0 -13 Td (Flujo:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Se confirma pago/pedido.) Tj
+0 -13 Td (2. Notificador obtiene partner y teléfono.) Tj
+0 -13 Td (3. Se envía plantilla o texto usando Graph API.) Tj
+0 -13 Td (4. Meta devuelve `message_id`.) Tj
+0 -13 Td (5. Webhook de estados \(`sent`, `delivered`, `read`, `failed`\) se procesa para trazabilidad.) Tj
+0 -13 Td () Tj
+0 -13 Td (Incluye validación de firma `X-Hub-Signature-256` con HMAC SHA-256 cuando `WHATSAPP_APP_SECRET` ) Tj
+0 -13 Td (está configurado.) Tj
+ET
+endstream
+endobj
+49 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 48 0 R >>
+endobj
+50 0 obj
+<< /Length 3073 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+() Tj
+0 -13 Td (CAPÍTULO 7: INFRAESTRUCTURA, DESPLIEGUE Y OPERACIONES \(DEVOPS\)) Tj
+0 -13 Td () Tj
+0 -13 Td (7.1 ORQUESTACIÓN MULTI-CONTENEDOR CON DOCKER) Tj
+0 -13 Td () Tj
+0 -13 Td (`docker-compose.yml` define cuatro servicios principales:) Tj
+0 -13 Td () Tj
+0 -13 Td (- `db` \(`postgres:16`\) con volumen `postgres_data`.) Tj
+0 -13 Td (- `odoo` \(`odoo:19.0`\) con volúmenes `odoo_data`, addon mount y `odoo.conf`.) Tj
+0 -13 Td (- `flask` \(build local\) expuesto en `5000`, conectado a `odoo` interno.) Tj
+0 -13 Td (- `frontend` \(build React + Nginx\) expuesto en `5173:80`.) Tj
+0 -13 Td () Tj
+0 -13 Td (Detalles de diseño:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Red bridge dedicada `catalogix`.) Tj
+0 -13 Td (- Healthcheck de Postgres \(`pg_isready`\) para ordenar arranque.) Tj
+0 -13 Td (- `depends_on` entre capas.) Tj
+0 -13 Td (- Variables sensibles externalizadas por `env_file` backend.) Tj
+0 -13 Td () Tj
+0 -13 Td (7.2 PROCESO DE INICIALIZACIÓN INICIAL) Tj
+0 -13 Td () Tj
+0 -13 Td (Secuencia recomendada de bootstrap:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Levantar stack con `docker compose up -d`.) Tj
+0 -13 Td (2. Entrar a Odoo en `:8069`.) Tj
+0 -13 Td (3. Crear/seleccionar DB `catalogix`.) Tj
+0 -13 Td (4. Instalar módulo custom \(`odoo_module`\).) Tj
+0 -13 Td (5. Configurar usuario admin y parámetros contables base.) Tj
+0 -13 Td (6. Validar endpoints Flask y login frontend.) Tj
+0 -13 Td () Tj
+0 -13 Td (7.3 CONFIGURACIÓN AUTOMATIZADA DE CONTABILIDAD) Tj
+0 -13 Td () Tj
+0 -13 Td (`backend/scripts/setup_odoo_accounting.py` automatiza:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Carga de plan de cuentas genérico \(cuando disponible\).) Tj
+0 -13 Td (- Creación de cuentas críticas \(`asset_receivable`, `liability_payable`, `income`, `expense`, ) Tj
+0 -13 Td (`asset_cash`\).) Tj
+0 -13 Td (- Asignación de cuentas a partners y plantillas de producto.) Tj
+0 -13 Td (- Configuración de journals de ventas, banco y caja.) Tj
+0 -13 Td () Tj
+0 -13 Td (Este script reduce errores manuales recurrentes que bloquean facturación y conciliación durante ) Tj
+0 -13 Td (pruebas de pago.) Tj
+0 -13 Td () Tj
+0 -13 Td (CAPÍTULO 8: GUÍA DE SOLUCIÓN DE ERRORES Y DIAGNÓSTICO) Tj
+0 -13 Td () Tj
+0 -13 Td (8.1 FALLOS CRÍTICOS DE COMUNICACIÓN JSON-RPC) Tj
+0 -13 Td () Tj
+0 -13 Td (| Síntoma | Causa probable | Detección | Solución |) Tj
+0 -13 Td (|---|---|---|---|) Tj
+0 -13 Td (| `Cannot connect to Odoo` | Odoo caído, URL incorrecta, red Docker | Logs Flask + healthcheck ) Tj
+0 -13 Td (Odoo | Verificar `ODOO_URL`, estado contenedor y DNS de red |) Tj
+0 -13 Td (| `Odoo request timed out` | Query lenta o bloqueo transaccional | Timeout 15s en `_rpc` | Revisar) Tj
+0 -13 Td ( carga Odoo, índices y tamaño de lotes |) Tj
+0 -13 Td (| `Session expired` | Cookie de sesión inválida o vencida | Excepción RuntimeError en `call` | ) Tj
+0 -13 Td (`_ensure_session` + reautenticación automática |) Tj
+0 -13 Td (| `Access denied` en `call_kw` | Usuario sin permisos o sesión inconsistente | Mensaje de error ) Tj
+0 -13 Td (Odoo | Revisar grupos `res.users` y reglas de acceso |) Tj
+ET
+endstream
+endobj
+51 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 50 0 R >>
+endobj
+52 0 obj
+<< /Length 3021 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(| `Invalid token` \(Flask\) | JWT expirado/manipulado | `jwt_required` retorna 401 | Renovar refresh) Tj
+0 -13 Td ( token o re-login |) Tj
+0 -13 Td () Tj
+0 -13 Td (8.2 DESAJUSTES EN TIPO DE CAMBIO E IMPUESTOS) Tj
+0 -13 Td () Tj
+0 -13 Td (Diagnóstico sugerido:) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Confirmar moneda de factura en `account.move.currency_id`.) Tj
+0 -13 Td (2. Verificar normalización \(`RD$ -> DOP`\) en `currencies.py`.) Tj
+0 -13 Td (3. Validar decimales definidos en `res.currency.decimal_places`.) Tj
+0 -13 Td (4. Comparar monto enviado a Stripe \(`to_minor_units`\) vs monto de Odoo.) Tj
+0 -13 Td (5. Revisar si el descuento/cupón se aplicó antes de calcular ITBIS.) Tj
+0 -13 Td () Tj
+0 -13 Td (Regla operativa: nunca enviar a Stripe un `float` sin convertir mediante `Decimal` y redondeo ) Tj
+0 -13 Td (explícito.) Tj
+0 -13 Td () Tj
+0 -13 Td (8.3 AUDITORÍA DE SEGURIDAD E INVALIDACIÓN DE SESIONES) Tj
+0 -13 Td () Tj
+0 -13 Td (Controles recomendados:) Tj
+0 -13 Td () Tj
+0 -13 Td (- Rotar `JWT_SECRET` por entorno y con cadencia definida.) Tj
+0 -13 Td (- Reducir `JWT_EXPIRY_HOURS` en producción \(ej. 1-4h\) y usar refresh controlado.) Tj
+0 -13 Td (- Invalidar sesiones comprometidas eliminando refresh tokens en cliente y aplicando lista de ) Tj
+0 -13 Td (revocación server-side si se requiere hard revoke.) Tj
+0 -13 Td (- Auditar eventos críticos con `log_event` \(`LOGIN_FAILED`, `CHECKOUT_BLOCKED`, ) Tj
+0 -13 Td (`STRIPE_WEBHOOK_INVALID`\).) Tj
+0 -13 Td (- Restringir permisos de cuentas técnicas de Odoo usadas por middleware.) Tj
+0 -13 Td () Tj
+0 -13 Td (---) Tj
+0 -13 Td () Tj
+0 -13 Td (ANEXO A: EJEMPLO DE CLIENTE API FRONTEND CON TOKEN Y REFRESH) Tj
+0 -13 Td () Tj
+0 -13 Td (Código real de `frontend/src/services/odoo/odooClient.js` \(equivalente conceptual de interceptor\):) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (import authStore from "../../store/authStore";) Tj
+0 -13 Td () Tj
+0 -13 Td (const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";) Tj
+0 -13 Td (const TOKEN_KEY = "catalogix_token";) Tj
+0 -13 Td (const REFRESH_KEY = "catalogix_refresh_token";) Tj
+0 -13 Td () Tj
+0 -13 Td (let refreshPromise = null;) Tj
+0 -13 Td () Tj
+0 -13 Td (async function refreshAccessToken\(\) {) Tj
+0 -13 Td (  if \(refreshPromise\) return refreshPromise;) Tj
+0 -13 Td (  const refreshToken = localStorage.getItem\(REFRESH_KEY\);) Tj
+0 -13 Td (  if \(!refreshToken\) throw new Error\("No refresh token"\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  refreshPromise = \(async \(\) => {) Tj
+0 -13 Td (    const res = await fetch\(`${BASE_URL}/api/auth/refresh`, {) Tj
+0 -13 Td (      method: "POST",) Tj
+0 -13 Td (      headers: { "Content-Type": "application/json" },) Tj
+0 -13 Td (      body: JSON.stringify\({ refresh_token: refreshToken }\),) Tj
+0 -13 Td (    }\);) Tj
+0 -13 Td (    const data = await res.json\(\);) Tj
+0 -13 Td (    if \(!res.ok || !data?.ok\) throw new Error\(data?.error || "Refresh failed"\);) Tj
+0 -13 Td (    const nextToken = data.data?.token;) Tj
+ET
+endstream
+endobj
+53 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 52 0 R >>
+endobj
+54 0 obj
+<< /Length 2747 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(    const nextRefresh = data.data?.refresh_token;) Tj
+0 -13 Td (    if \(nextToken\) localStorage.setItem\(TOKEN_KEY, nextToken\);) Tj
+0 -13 Td (    if \(nextRefresh\) localStorage.setItem\(REFRESH_KEY, nextRefresh\);) Tj
+0 -13 Td (    return nextToken;) Tj
+0 -13 Td (  }\)\(\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  try {) Tj
+0 -13 Td (    return await refreshPromise;) Tj
+0 -13 Td (  } finally {) Tj
+0 -13 Td (    refreshPromise = null;) Tj
+0 -13 Td (  }) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td (async function request\(method, endpoint, body = null, allowRetry = true\) {) Tj
+0 -13 Td (  const token = localStorage.getItem\(TOKEN_KEY\);) Tj
+0 -13 Td (  const headers = { "Content-Type": "application/json" };) Tj
+0 -13 Td (  if \(token\) headers.Authorization = `Bearer ${token}`;) Tj
+0 -13 Td () Tj
+0 -13 Td (  const options = { method, headers };) Tj
+0 -13 Td (  if \(body\) options.body = JSON.stringify\(body\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  const res = await fetch\(`${BASE_URL}${endpoint}`, options\);) Tj
+0 -13 Td (  const data = await res.json\(\);) Tj
+0 -13 Td () Tj
+0 -13 Td (  if \(!res.ok\) {) Tj
+0 -13 Td (    if \(res.status === 401 && token && !endpoint.startsWith\("/api/auth/"\) && allowRetry\) {) Tj
+0 -13 Td (      try {) Tj
+0 -13 Td (        await refreshAccessToken\(\);) Tj
+0 -13 Td (        return await request\(method, endpoint, body, false\);) Tj
+0 -13 Td (      } catch {) Tj
+0 -13 Td (        authStore.clearSession\(\);) Tj
+0 -13 Td (        window.location.assign\("/login"\);) Tj
+0 -13 Td (      }) Tj
+0 -13 Td (    }) Tj
+0 -13 Td (    throw new Error\(data?.error || "Error de red"\);) Tj
+0 -13 Td (  }) Tj
+0 -13 Td () Tj
+0 -13 Td (  if \(!data?.ok\) throw new Error\(data?.error || "Respuesta inválida"\);) Tj
+0 -13 Td (  return data.data;) Tj
+0 -13 Td (}) Tj
+0 -13 Td () Tj
+0 -13 Td (export const api = {) Tj
+0 -13 Td (  get: \(endpoint\) => request\("GET", endpoint\),) Tj
+0 -13 Td (  post: \(endpoint, body\) => request\("POST", endpoint, body\),) Tj
+0 -13 Td (  put: \(endpoint, body\) => request\("PUT", endpoint, body\),) Tj
+0 -13 Td (  patch: \(endpoint, body\) => request\("PATCH", endpoint, body\),) Tj
+0 -13 Td (  delete: \(endpoint\) => request\("DELETE", endpoint\),) Tj
+0 -13 Td (};) Tj
+0 -13 Td () Tj
+0 -13 Td () Tj
+0 -13 Td (ANEXO B: CONSIDERACIONES DE EVOLUCIÓN TÉCNICA) Tj
+0 -13 Td () Tj
+0 -13 Td (1. Migrar definitivamente `authStore` + `CartContext` a Zustand persistente para unificar flujo de) Tj
+0 -13 Td ( estado.) Tj
+0 -13 Td (2. Integrar `Stripe Elements + PaymentIntent` si se requiere captura en sitio en lugar de ) Tj
+0 -13 Td (redirección Checkout Session.) Tj
+0 -13 Td (3. Consolidar tabla/reportes con TanStack/Recharts para consistencia de dashboard.) Tj
+ET
+endstream
+endobj
+55 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 54 0 R >>
+endobj
+56 0 obj
+<< /Length 117 >>
+stream
+BT
+/F1 10 Tf
+42 794 Td
+(4. Añadir pruebas de contrato JSON-RPC para detectar cambios de versión Odoo temprano.) Tj
+ET
+endstream
+endobj
+57 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 56 0 R >>
+endobj
+xref
+0 58
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000302 00000 n 
+0000000372 00000 n 
+0000004158 00000 n 
+0000004284 00000 n 
+0000007243 00000 n 
+0000007369 00000 n 
+0000010264 00000 n 
+0000010390 00000 n 
+0000012558 00000 n 
+0000012686 00000 n 
+0000015233 00000 n 
+0000015361 00000 n 
+0000017897 00000 n 
+0000018025 00000 n 
+0000020666 00000 n 
+0000020794 00000 n 
+0000023496 00000 n 
+0000023624 00000 n 
+0000026562 00000 n 
+0000026690 00000 n 
+0000028977 00000 n 
+0000029105 00000 n 
+0000031583 00000 n 
+0000031711 00000 n 
+0000034251 00000 n 
+0000034379 00000 n 
+0000036739 00000 n 
+0000036867 00000 n 
+0000039527 00000 n 
+0000039655 00000 n 
+0000042208 00000 n 
+0000042336 00000 n 
+0000045267 00000 n 
+0000045395 00000 n 
+0000048213 00000 n 
+0000048341 00000 n 
+0000050970 00000 n 
+0000051098 00000 n 
+0000053580 00000 n 
+0000053708 00000 n 
+0000056109 00000 n 
+0000056237 00000 n 
+0000059118 00000 n 
+0000059246 00000 n 
+0000062267 00000 n 
+0000062395 00000 n 
+0000065131 00000 n 
+0000065259 00000 n 
+0000068385 00000 n 
+0000068513 00000 n 
+0000071587 00000 n 
+0000071715 00000 n 
+0000074515 00000 n 
+0000074643 00000 n 
+0000074812 00000 n 
+trailer
+<< /Size 58 /Root 1 0 R >>
+startxref
+74940
+%%EOF

@@ -130,10 +130,13 @@ const resolveCategoryParam = (param, categories = []) => {
   const norm = normalizeText(param);
   if (!norm) return null;
   if (norm === "todos" || norm === "all") return "Todos";
-  const mapped = CAT_PARAM_MAP[norm];
-  if (mapped && categories.includes(mapped)) return mapped;
+  // 1. Coincidencia exacta normalizada (cubre categorías dinámicas como 'Taller', 'Repuestos', etc.)
   const exact = categories.find(c => normalizeText(c) === norm);
   if (exact) return exact;
+  // 2. Mapa estático de alias en inglés/español
+  const mapped = CAT_PARAM_MAP[norm];
+  if (mapped && categories.includes(mapped)) return mapped;
+  // 3. Coincidencia parcial por palabras clave
   const guess = categories.find((c) => {
     const cn = normalizeText(c);
     if (["tech","tecnologia","technology"].includes(norm)) return cn.includes("electron") || cn.includes("tecnolog") || cn.includes("tech");
@@ -149,11 +152,16 @@ const resolveCategoryParam = (param, categories = []) => {
     if (["other","otros","misc"].includes(norm)) return cn.includes("otro") || cn.includes("misc") || cn.includes("vario");
     return false;
   });
-  return guess || mapped || null;
+  // 4. Fallback: devolver el parámetro original si existe como categoría (case-insensitive)
+  if (guess) return guess;
+  if (mapped) return mapped;
+  // Último recurso: buscar si el param original existe tal cual en las categorías
+  const fallback = categories.find(c => c.toLowerCase() === param.toLowerCase());
+  return fallback || null;
 };
 
 // ─── ProductCard ──────────────────────────────────────────────────────────────
-function PCard({ p, view, idx, onAdd, goto }) {
+function PCard({ p, view, idx, onAdd, goto, byCode }) {
   const [added, setAdded] = useState(false);
   const [faved, setFaved] = useState(false);
   const [hov,   setHov  ] = useState(false);
@@ -181,8 +189,8 @@ function PCard({ p, view, idx, onAdd, goto }) {
       <div className="lcard-right">
         <div className="lprice-wrap">
           {disc && <div className="ldiscbadge">-{disc}%</div>}
-                  <div className="lprice">{formatMoney(p.price, p.currency, { byCode })}</div>
-                  {p.original && <div className="loriginal">{formatMoney(p.original, p.currency, { byCode })}</div>}
+          <div className="lprice">{formatMoney(p.price, p.currency, { byCode })}</div>
+          {p.original && <div className="loriginal">{formatMoney(p.original, p.currency, { byCode })}</div>}
         </div>
         <button className={`ladd${added?" ok":""}`} onClick={doAdd}>{added?<><IcoCheck/>Listo</>:<><IcoCart/>Agregar</>}</button>
       </div>
@@ -207,8 +215,8 @@ function PCard({ p, view, idx, onAdd, goto }) {
         <div className="gvendor">{p.vendor}{p.ver&&<span className="vdot">✓</span>}</div>
         <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:10}}><Stars/><span className="rnum">{p.rating}</span><span className="rrev">({p.reviews})</span></div>
         <div className="gprice-row">
-                  <span className="gprice">{formatMoney(p.price, p.currency, { byCode })}</span>
-                  {p.original && <span className="goriginal">{formatMoney(p.original, p.currency, { byCode })}</span>}
+          <span className="gprice">{formatMoney(p.price, p.currency, { byCode })}</span>
+          {p.original && <span className="goriginal">{formatMoney(p.original, p.currency, { byCode })}</span>}
         </div>
       </div>
       <div className="gcta" style={{opacity:hov?1:0,transform:hov?"translateY(0)":"translateY(5px)"}}>
@@ -233,12 +241,14 @@ export default function Search() {
   const [sort,       setSort      ] = useState("rel");
   const [view,       setView      ] = useState("grid");
   const [minR,       setMinR      ] = useState(0);
-  const [offers,     setOffers    ] = useState(false);
+  // Leer ?filter=sale desde la URL para activar el toggle de ofertas
+  const [offers,     setOffers    ] = useState(sp.get("filter") === "sale");
   const [verif,      setVerif     ] = useState(false);
   const [products,   setProducts  ] = useState([]);
   const [loading,    setLoading   ] = useState(true);
   const [error,      setError     ] = useState("");
   const [focused,    setFocused   ] = useState(false);
+  const [apiCategories, setApiCategories] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,21 +266,48 @@ export default function Search() {
       }
     };
     loadProducts();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
+  }, []);
+
+  // Cargar categorías desde la API pública para que reflejen el CRUD del vendedor
+  useEffect(() => {
+    let cancelled = false;
+    storeService.listCategories
+      ? storeService.listCategories()
+          .then((rows) => {
+            if (cancelled) return;
+            if (Array.isArray(rows) && rows.length) {
+              setApiCategories(rows.map(r => r.name || r).filter(Boolean));
+            }
+          })
+          .catch(() => {})
+      : fetch("/api/store/categories")
+          .then(r => r.json())
+          .then(d => {
+            if (cancelled) return;
+            const rows = d?.data || d?.result || [];
+            if (Array.isArray(rows) && rows.length) {
+              setApiCategories(rows.map(r => r.name || r).filter(Boolean));
+            }
+          })
+          .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     setQ(sp.get("q") || "");
     setCatParam(sp.get("cat") || sp.get("category") || "");
+    if (sp.get("filter") === "sale") setOffers(true);
   }, [sp]);
 
   const range = PRANGES.find(r=>r.id===pr)||PRANGES[0];
+  // Mezcla categorías de la API + las extraídas de los productos (sin duplicados)
   const categories = useMemo(() => {
-    const set = new Set((products || []).map(p => p.cat).filter(Boolean));
-    return ["Todos", ...Array.from(set).sort()];
-  }, [products]);
+    const fromProducts = new Set((products || []).map(p => p.cat).filter(Boolean));
+    const fromApi = (apiCategories || []).filter(Boolean);
+    const merged = new Set([...fromApi, ...fromProducts]);
+    return ["Todos", ...Array.from(merged).sort()];
+  }, [products, apiCategories]);
 
   useEffect(() => {
     if (!catParam) {
@@ -456,11 +493,11 @@ export default function Search() {
               </div>
             ) : view==="grid" ? (
               <div className="ggrid">
-                {sorted.map((p,i)=><PCard key={p.id} p={p} view="grid" idx={i} onAdd={p=>{addToCart&&addToCart(p);}} goto={id=>navigate(`/product/${id}`)}/>)}
+                {sorted.map((p,i)=><PCard key={p.id} p={p} view="grid" idx={i} byCode={byCode} onAdd={p=>{addToCart&&addToCart(p);}} goto={id=>navigate(`/product/${id}`)}/>)}
               </div>
             ) : (
               <div className="llist">
-                {sorted.map((p,i)=><PCard key={p.id} p={p} view="list" idx={i} onAdd={p=>{addToCart&&addToCart(p);}} goto={id=>navigate(`/product/${id}`)}/>)}
+                {sorted.map((p,i)=><PCard key={p.id} p={p} view="list" idx={i} byCode={byCode} onAdd={p=>{addToCart&&addToCart(p);}} goto={id=>navigate(`/product/${id}`)}/>)}
               </div>
             )}
           </div>

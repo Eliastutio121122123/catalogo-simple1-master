@@ -82,15 +82,22 @@ export default function Customers() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!filtered.length) return;
     const date = new Date().toISOString().slice(0, 10);
-    printTablePdf({
+    await printTablePdf({
       filename: `clientes_${date}.pdf`,
       title: "Clientes",
-      subtitle: `${filtered.length} clientes`,
+      subtitle: `${filtered.length} clientes · ${date}`,
       columns: exportColumns,
       rows: filtered,
+      brandName: "Catalogix",
+      kpis: [
+        { label: "Total clientes",   value: String(rows.length)            },
+        { label: "Activos",          value: String(stats.active)           },
+        { label: "VIP",              value: String(stats.vip)              },
+        { label: "Venta acumulada",  value: fmtMoney(stats.total)         },
+      ],
     });
   };
 
