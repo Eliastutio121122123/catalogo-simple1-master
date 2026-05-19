@@ -1,6 +1,8 @@
 ﻿import { Component, PureComponent } from "react";
 import { Navigate } from "react-router-dom";
 import vendorDashboardService from "../../services/odoo/vendorDashboardService";
+import currencyService from "../../services/odoo/currencyService";
+import { formatMoney as fmtMoney } from "../../utils/formatCurrency";
 
 // ICONS
 class IcoTrendUp extends PureComponent {
@@ -261,6 +263,8 @@ export default class VendorDashboard extends Component {
       data: null,
       alerts: [],
       redirectTo: null,
+      currencyBase: "DOP",
+      currencyByCode: null,
     };
     this._readyTimer = null;
     this._refreshTimer = null;
@@ -268,6 +272,21 @@ export default class VendorDashboard extends Component {
 
   componentDidMount() {
     this._readyTimer = setTimeout(() => this.setState({ ready: true }), 50);
+    currencyService
+      .list()
+      .then((payload) => {
+        const currencies = Array.isArray(payload?.currencies) ? payload.currencies : [];
+        const byCode = {};
+        for (const cur of currencies) {
+          if (!cur || !cur.code) continue;
+          byCode[String(cur.code).toUpperCase()] = cur;
+        }
+        this.setState({
+          currencyBase: String(payload?.base || "DOP").toUpperCase(),
+          currencyByCode: byCode,
+        });
+      })
+      .catch(() => {});
     this.loadData(this.state.period);
   }
 
@@ -308,9 +327,9 @@ export default class VendorDashboard extends Component {
     this.setState({ redirectTo: path });
   }
 
-  formatMoney(value) {
-    const amount = Number(value || 0);
-    return `RD$${amount.toLocaleString("es-DO", { maximumFractionDigits: 2 })}`;
+  formatMoney(value, currency) {
+    const code = String(currency || this.state.currencyBase || "DOP").toUpperCase();
+    return fmtMoney(Number(value || 0), code, { maximumFractionDigits: 2, byCode: this.state.currencyByCode });
   }
 
   periodLabel(period) {

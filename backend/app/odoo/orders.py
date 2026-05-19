@@ -6,6 +6,7 @@ ORDER_FIELDS = [
     "state",
     "client_order_ref",
     "amount_total",
+    "currency_id",
     "partner_id",
     "date_order",
     "order_line",
@@ -147,6 +148,9 @@ def get_draft_cart_by_partner(partner_id: int) -> dict | None:
     if not results:
         return None
     order = results[0]
+    currency = order.get("currency_id") or [None, "DOP"]
+    if isinstance(currency, list) and len(currency) > 1:
+        order["currency"] = currency[1] or "DOP"
     order["lines"] = _attach_line_images(
         odoo.read("sale.order.line", order["order_line"], LINE_FIELDS)
     )
@@ -188,6 +192,9 @@ def get_order_by_id(order_id: int) -> dict:
     if not results:
         raise LookupError(f"Order {order_id} not found")
     order = results[0]
+    currency = order.get("currency_id") or [None, "DOP"]
+    if isinstance(currency, list) and len(currency) > 1:
+        order["currency"] = currency[1] or "DOP"
     order["lines"] = _attach_line_images(
         odoo.read("sale.order.line", order["order_line"], LINE_FIELDS)
     )

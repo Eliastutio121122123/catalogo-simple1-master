@@ -13,6 +13,7 @@ from .delivery_service import build_delivery_service
 from .store_promotions import store_promotion_service
 from .store_coupons import store_coupon_service, CouponError
 from ..stripe.service import StripeLineItem, stripe_service
+from ..utils.money import to_minor_units
 
 
 @dataclass
@@ -329,9 +330,9 @@ class PaymentService:
         partner = self._read_partner(partner_id)
         order_ref = order.get("name") or f"SO{order_id}"
         currency = self._invoice_currency(invoice)
-        line_items = self._stripe_line_items(order_id)
+        line_items = self._stripe_line_items(order_id, currency=currency)
         if not line_items:
-            line_items = self._stripe_line_items_from_request(request)
+            line_items = self._stripe_line_items_from_request(request, currency=currency)
 
         success_url = current_app.config.get("STRIPE_SUCCESS_URL", "")
         cancel_url = current_app.config.get("STRIPE_CANCEL_URL", "")
@@ -374,7 +375,7 @@ class PaymentService:
             return str(currency[1] or "DOP")
         return "DOP"
 
-    def _stripe_line_items(self, order_id: int) -> list[StripeLineItem]:
+    def _stripe_line_items(self, order_id: int, *, currency: str) -> list[StripeLineItem]:
         rows = self._client.search_read(
             "sale.order.line",
             [["order_id", "=", order_id]],
@@ -389,24 +390,24 @@ class PaymentService:
             price_total = float(row.get("price_total") or 0)
             if qty <= 0 or price_unit < 0:
                 continue
-            total_cents = self._to_cents(price_total if price_total > 0 else price_unit * qty)
-            if total_cents <= 0:
+            total_minor = to_minor_units(price_total if price_total > 0 else price_unit * qty, currency)
+            if total_minor <= 0:
                 continue
             if qty.is_integer():
                 quantity = max(1, int(qty))
-                unit_amount = int(Decimal(total_cents) / quantity)
-                if unit_amount * quantity != total_cents:
+                unit_amount = int(Decimal(total_minor) / quantity)
+                if unit_amount * quantity != total_minor:
                     quantity = 1
-                    unit_amount = total_cents
+                    unit_amount = total_minor
             else:
                 quantity = 1
-                unit_amount = total_cents
+                unit_amount = total_minor
             if unit_amount <= 0:
                 continue
             items.append(StripeLineItem(name=name, unit_amount=unit_amount, quantity=quantity))
         return items
 
-    def _stripe_line_items_from_request(self, request: PaymentRequest) -> list[StripeLineItem]:
+    def _stripe_line_items_from_request(self, request: PaymentRequest, *, currency: str) -> list[StripeLineItem]:
         items: list[StripeLineItem] = []
         for line in request.lines():
             qty = float(line.qty or 0)
@@ -415,10 +416,10 @@ class PaymentService:
                 continue
             if qty.is_integer():
                 quantity = max(1, int(qty))
-                unit_amount = self._to_cents(price)
+                unit_amount = to_minor_units(price, currency)
             else:
                 quantity = 1
-                unit_amount = self._to_cents(price * qty)
+                unit_amount = to_minor_units(price * qty, currency)
             if unit_amount <= 0:
                 continue
             items.append(
@@ -433,11 +434,6 @@ class PaymentService:
     def _read_partner(self, partner_id: int) -> dict:
         rows = self._client.read("res.partner", [partner_id], ["name", "email", "phone"])
         return rows[0] if rows else {}
-
-    @staticmethod
-    def _to_cents(value: float | str | Decimal) -> int:
-        amount = Decimal(str(value))
-        return int((amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
     def _resolve_partner_id(self, uid: int, explicit_partner_id: int | None) -> int:
         if explicit_partner_id:

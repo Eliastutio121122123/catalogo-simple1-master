@@ -1,6 +1,7 @@
 from .client import odoo
 from .inventory import set_onhand_for_template
 from .variant_options import attach_variant_options
+from .currencies import resolve_currency_id
 import base64
 import binascii
 
@@ -362,10 +363,9 @@ class VendorProductService:
         currency_str = payload.get("currency")
         currency_id = None
         if currency_str:
-            currency_code = "DOP" if currency_str == "RD$" else currency_str
-            cur_rows = odoo.call("res.currency", "search_read", [[["name", "=", currency_code]]], {"fields": ["id"], "limit": 1})
-            if cur_rows:
-                currency_id = cur_rows[0]["id"]
+            currency_id = resolve_currency_id(str(currency_str))
+            if not currency_id:
+                raise ValueError("Moneda no vÃ¡lida o no disponible en Odoo")
 
         category_id = cls._resolve_category_id(payload.get("category"))
         values = {
@@ -495,10 +495,10 @@ class VendorProductService:
         
         currency_str = payload.get("currency")
         if currency_str:
-            currency_code = "DOP" if currency_str == "RD$" else currency_str
-            cur_rows = odoo.call("res.currency", "search_read", [[["name", "=", currency_code]]], {"fields": ["id"], "limit": 1})
-            if cur_rows:
-                values["currency_id"] = cur_rows[0]["id"]
+            currency_id = resolve_currency_id(str(currency_str))
+            if not currency_id:
+                raise ValueError("Moneda no vÃ¡lida o no disponible en Odoo")
+            values["currency_id"] = currency_id
                 
         if "status" in payload:
             status = (payload.get("status") or "").strip().lower()

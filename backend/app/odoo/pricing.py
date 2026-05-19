@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .client import odoo
+from .currencies import normalize_currency_code
 
 
 DEFAULT_SETTINGS = {
@@ -109,7 +110,9 @@ def save_vendor_pricing_settings(partner_id: int, payload: dict) -> dict:
 
     values = {}
     if "currency" in payload:
-        values["currency"] = str(payload.get("currency") or "").strip().upper() or DEFAULT_SETTINGS["currency"]
+        values["currency"] = normalize_currency_code(
+            str(payload.get("currency") or DEFAULT_SETTINGS["currency"])
+        )
     if "defaultMarginPercent" in payload or "default_margin_percent" in payload:
         values["default_margin_percent"] = float(
             payload.get("defaultMarginPercent", payload.get("default_margin_percent") or 0)

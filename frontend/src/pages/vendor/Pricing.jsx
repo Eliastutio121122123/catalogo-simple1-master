@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import pricingService from "../../services/odoo/pricingService";
+import useCurrency from "../../hooks/useCurrency";
 
 export default function Pricing() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [saving, setSaving] = useState(false);
+  const { currencies } = useCurrency();
+  const currencyOptions = (currencies && currencies.length)
+    ? currencies
+    : [
+        { code: "DOP", symbol: "RD$", name: "Peso dominicano" },
+        { code: "USD", symbol: "$", name: "DÃ³lar estadounidense" },
+        { code: "EUR", symbol: "â‚¬", name: "Euro" },
+      ];
 
   const load = async () => {
     const [cfg, list] = await Promise.all([pricingService.getSettings(), pricingService.listRules()]);
@@ -94,9 +103,11 @@ export default function Pricing() {
               <div className="pr-f">
                 <label className="pr-l">Moneda</label>
                 <select className="pr-i" value={settings.currency} onChange={(e) => updateField("currency", e.target.value)}>
-                  <option value="DOP">DOP</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
+                  {currencyOptions.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol || c.code})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="pr-f">

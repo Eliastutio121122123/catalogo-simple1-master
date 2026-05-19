@@ -2,6 +2,8 @@ import { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
 import { storeService } from "../../services/odoo/storeService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IcoSearch  = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
@@ -43,6 +45,7 @@ class ProductAdapter {
     const catName = this._nameFromPair(row?.categ_id) || "General";
     const catalogName = this._nameFromPair(row?.catalog_id) || "";
     const price = Number(row?.list_price || 0);
+    const currency = Array.isArray(row?.currency_id) ? row.currency_id[1] : "DOP";
     const qty = this._stockQty(row);
     const tag = qty <= 0 ? "Agotado" : null;
     return {
@@ -51,6 +54,7 @@ class ProductAdapter {
       catalog: catalogName,
       cat: catName,
       price,
+      currency,
       original: row?.original_price ? Number(row.original_price) : null,
       rating: Number(row?.rating || 0),
       reviews: Number(row?.reviews || 0),
@@ -177,8 +181,8 @@ function PCard({ p, view, idx, onAdd, goto }) {
       <div className="lcard-right">
         <div className="lprice-wrap">
           {disc && <div className="ldiscbadge">-{disc}%</div>}
-          <div className="lprice">RD${p.price.toLocaleString()}</div>
-          {p.original && <div className="loriginal">RD${p.original.toLocaleString()}</div>}
+                  <div className="lprice">{formatMoney(p.price, p.currency, { byCode })}</div>
+                  {p.original && <div className="loriginal">{formatMoney(p.original, p.currency, { byCode })}</div>}
         </div>
         <button className={`ladd${added?" ok":""}`} onClick={doAdd}>{added?<><IcoCheck/>Listo</>:<><IcoCart/>Agregar</>}</button>
       </div>
@@ -203,8 +207,8 @@ function PCard({ p, view, idx, onAdd, goto }) {
         <div className="gvendor">{p.vendor}{p.ver&&<span className="vdot">✓</span>}</div>
         <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:10}}><Stars/><span className="rnum">{p.rating}</span><span className="rrev">({p.reviews})</span></div>
         <div className="gprice-row">
-          <span className="gprice">RD${p.price.toLocaleString()}</span>
-          {p.original && <span className="goriginal">RD${p.original.toLocaleString()}</span>}
+                  <span className="gprice">{formatMoney(p.price, p.currency, { byCode })}</span>
+                  {p.original && <span className="goriginal">{formatMoney(p.original, p.currency, { byCode })}</span>}
         </div>
       </div>
       <div className="gcta" style={{opacity:hov?1:0,transform:hov?"translateY(0)":"translateY(5px)"}}>
@@ -218,6 +222,7 @@ function PCard({ p, view, idx, onAdd, goto }) {
 export default function Search() {
   const { cartCount = 0, addToCart } = useContext(CartContext) || {};
   const navigate        = useNavigate();
+  const { byCode } = useCurrency();
   const [sp, setSp]     = useSearchParams();
   const inputRef        = useRef(null);
 

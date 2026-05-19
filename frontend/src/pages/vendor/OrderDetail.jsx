@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { vendorOrderService } from "../../services/odoo/vendorOrderService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IcoBack     = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -85,6 +87,7 @@ class VendorOrderDetailAdapter {
       payment: raw.payment || "card",
       paid: raw.paid ?? true,
       total: Number(raw.total || 0),
+      currency: String(raw.currency || "DOP").toUpperCase(),
       date: raw.date || "",
       notes: raw.notes || "",
       products,
@@ -96,7 +99,6 @@ class VendorOrderDetailAdapter {
 
 const detailAdapter = new VendorOrderDetailAdapter();
 
-const fmt  = n => "RD$" + (n || 0).toLocaleString("es-DO");
 const fmtDT= s => {
   if (!s) return "";
   const [date, time] = s.split(" ");
@@ -108,6 +110,9 @@ const fmtDT= s => {
 export default function OrderDetail() {
   const navigate = useNavigate();
   const { id }   = useParams();
+  const { byCode, base } = useCurrency();
+  const fmt = (n, currency) =>
+    formatMoney(Number(n || 0), currency || base || "DOP", { maximumFractionDigits: 2, byCode });
 
   const [ready,      setReady    ] = useState(false);
   const [order,      setOrder    ] = useState(null);
@@ -168,7 +173,7 @@ export default function OrderDetail() {
 
   const statusLabel = (st && st.label) ? st.label : order.status;
   const buildNotifyDefault = () =>
-    `Hola ${order.customer}, tu pedido ${order.id} está ${statusLabel}. Total: ${fmt(order.total)}. Gracias.`;
+    `Hola ${order.customer}, tu pedido ${order.id} está ${statusLabel}. Total: ${fmt(order.total, order.currency)}. Gracias.`;
 
   const openEmail = () => {
     if (!order.email) return setToast("Este cliente no tiene correo.");
@@ -665,8 +670,8 @@ export default function OrderDetail() {
                       <div className="od-prod-qty">Ã— {p.qty} unidad{p.qty > 1 ? "es" : ""}</div>
                     </div>
                     <div style={{ textAlign:"right" }}>
-                      <div className="od-prod-price">{fmt(p.price * p.qty)}</div>
-                      {p.qty > 1 && <div style={{ fontSize:11, color:"var(--vs-400)" }}>{fmt(p.price)} c/u</div>}
+                      <div className="od-prod-price">{fmt(p.price * p.qty, order.currency)}</div>
+                      {p.qty > 1 && <div style={{ fontSize:11, color:"var(--vs-400)" }}>{fmt(p.price, order.currency)} c/u</div>}
                     </div>
                   </div>
                 ))}
@@ -675,11 +680,11 @@ export default function OrderDetail() {
                 <div style={{ padding:"16px 0 14px", borderTop:"2px solid var(--vs-100)", marginTop:4 }}>
                   <div className="od-pay-row">
                     <span className="od-pay-lbl">Subtotal</span>
-                    <span className="od-pay-val">{fmt(subtotal)}</span>
+                    <span className="od-pay-val">{fmt(subtotal, order.currency)}</span>
                   </div>
                   <div className="od-pay-row">
                     <span className="od-pay-lbl">ITBIS (18%)</span>
-                    <span className="od-pay-val">{fmt(itbis)}</span>
+                    <span className="od-pay-val">{fmt(itbis, order.currency)}</span>
                   </div>
                   <div className="od-pay-row">
                     <span className="od-pay-lbl">Envío</span>
@@ -688,7 +693,7 @@ export default function OrderDetail() {
                   <div className="od-pay-sep"/>
                   <div className="od-pay-row">
                     <span style={{ fontWeight:800, color:"var(--vs-900)", fontSize:14 }}>Total</span>
-                    <span className="od-pay-total">{fmt(order.total)}</span>
+                    <span className="od-pay-total">{fmt(order.total, order.currency)}</span>
                   </div>
                   <div className="od-pay-row" style={{ paddingTop:6 }}>
                     <span className="od-pay-lbl">Método de pago</span>
@@ -837,7 +842,7 @@ export default function OrderDetail() {
                   { lbl:"Fecha",         val: fmtDT(order.date)},
                   { lbl:"Catálogo",      val: order.catalog    },
                   { lbl:"Artículos",     val: `${order.products.length} producto${order.products.length > 1 ? "s" : ""}` },
-                  { lbl:"Total",         val: fmt(order.total), bold:true },
+                  { lbl:"Total",         val: fmt(order.total, order.currency), bold:true },
                 ].map((r, i) => (
                   <div key={i} className="od-pay-row">
                     <span className="od-pay-lbl">{r.lbl}</span>

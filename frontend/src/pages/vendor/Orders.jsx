@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { vendorOrderService } from "../../services/odoo/vendorOrderService";
 import { downloadBrandedExcel } from "../../utils/brandedExcel";
 import { printTablePdf } from "../../utils/tablePdf";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 const IcoSearch = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -46,6 +48,7 @@ class VendorOrderListAdapter {
       items: Number(row.items || 0),
       status: row.status || "pending",
       date: row.date || "",
+      currency: row.currency || "",
       statusCfg: this.statusCatalog.get(row.status),
     };
   }
@@ -65,8 +68,8 @@ class SearchDebouncer {
 
 const adapter = new VendorOrderListAdapter();
 
-const fmtMoney = (n) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP", maximumFractionDigits: 0 }).format(Number(n || 0));
+const fmtMoney = (n, currency, byCode, base) =>
+  formatMoney(Number(n || 0), currency || base || "DOP", { maximumFractionDigits: 0, byCode });
 
 const fmtDate = (d) => {
   if (!d) return "";
@@ -77,6 +80,7 @@ const fmtDate = (d) => {
 
 export default function Orders() {
   const navigate = useNavigate();
+  const { byCode, base } = useCurrency();
   const debouncer = useRef(new SearchDebouncer(300));
   const inFlightRef = useRef(false);
 
@@ -132,7 +136,7 @@ export default function Orders() {
       { key: "customer", label: "Cliente" },
       { key: "product", label: "Producto" },
       { key: "items", label: "Items", className: "td num" },
-      { key: "amount", label: "Total", className: "td num", format: (_, row) => fmtMoney(row.amount) },
+      { key: "amount", label: "Total", className: "td num", format: (_, row) => fmtMoney(row.amount, row.currency, byCode, base) },
       { key: "status", label: "Estado", format: (_, row) => statusLabel(row.status) },
       { key: "date", label: "Fecha", format: (_, row) => fmtDate(row.date) },
     ];
@@ -156,7 +160,7 @@ export default function Orders() {
     printTablePdf({
       filename: `pedidos_${date}.pdf`,
       title: "Pedidos",
-      subtitle: `${totalCount} pedidos · ${fmtMoney(totalAmount)} total`,
+      subtitle: `${totalCount} pedidos · ${fmtMoney(totalAmount, base, byCode, base)} total`,
       columns: exportColumns,
       rows: orders,
     });
@@ -203,7 +207,7 @@ export default function Orders() {
         <div className="vo-head">
           <div>
             <div className="vo-title">Pedidos</div>
-            <div className="vo-sub">{totalCount} pedidos · {fmtMoney(totalAmount)} total</div>
+            <div className="vo-sub">{totalCount} pedidos · {fmtMoney(totalAmount, base, byCode, base)} total</div>
           </div>
           <div className="vo-actions">
             <button className="vo-xbtn" onClick={exportPdf} disabled={!orders.length}>Exportar PDF</button>
@@ -250,7 +254,7 @@ export default function Orders() {
               </div>
               <div className="vo-prod vo-col-hide">{o.product}</div>
               <div>{o.items}</div>
-              <div className="vo-money">{fmtMoney(o.amount)}</div>
+              <div className="vo-money">{fmtMoney(o.amount, o.currency, byCode, base)}</div>
               <div>
                 <span className="vo-badge" style={{ background: o.statusCfg.bg, color: o.statusCfg.clr }}>
                   {o.statusCfg.label}

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import vendorProductService from "../../services/odoo/vendorProductService";
 import { downloadBrandedExcel } from "../../utils/brandedExcel";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IcoPlus    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
@@ -54,7 +56,7 @@ const STATUS_CFG = {
   draft:    { label:"Borrador", bg:"#f8fafc", clr:"#64748b", dot:"#94a3b8" },
 };
 
-const fmt = n => "RD$" + n.toLocaleString("es-DO");
+
 
 // ─── Confirm delete dialog ────────────────────────────────────────────────────
 function DeleteDialog({ name, onConfirm, onCancel }) {
@@ -98,6 +100,8 @@ function RowMenu({ product, onEdit, onView, onDuplicate, onToggle, onDelete, onC
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Products() {
   const navigate = useNavigate();
+  const { byCode } = useCurrency();
+  const fmt = (n, currency = "DOP") => formatMoney(n, currency, { maximumFractionDigits: 2, byCode });
 
   const [ready,      setReady     ] = useState(false);
   const [data,       setData      ] = useState([]);
@@ -716,7 +720,7 @@ export default function Products() {
                       {p.catalog}
                     </div>
                     <div className="vpx-td-price">
-                      <span className="vpx-price">{fmt(p.price)}</span>
+                            <span className="vpx-price">{fmt(p.price, p.currency)}</span>
                     </div>
                     <div className="vpx-td-stock vpx-stock">
                       <span className={`vpx-stock-n ${stockClass}`}>{p.stock}</span>
@@ -796,7 +800,7 @@ export default function Products() {
                         <div className="vpx-gc-name" title={p.name}>{p.name}</div>
                         <div className="vpx-gc-sku">{p.sku}</div>
                         <div className="vpx-gc-row">
-                          <span className="vpx-gc-price">{fmt(p.price)}</span>
+                          <span className="vpx-gc-price">{fmt(p.price, p.currency)}</span>
                           <span className={`vpx-gc-stk vpx-stock-n ${stockClass}`}>
                             {p.stock === 0 ? "Agotado" : `${p.stock} ud.`}
                           </span>

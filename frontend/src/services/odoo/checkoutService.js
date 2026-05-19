@@ -22,22 +22,23 @@ class CheckoutItemRefresher {
     );
     const map = new Map(rows);
 
-    return list.map((item) => {
-      const id = Number(item.productId || item.id || 0);
-      const row = map.get(id);
-      if (!row) return item;
-      const catalog = Array.isArray(row.catalog_id) ? row.catalog_id[1] : row.catalog_id || item.catalog || "";
-      return {
-        ...item,
-        name: row.name || item.name,
-        catalog,
-        imageUrl: row.image_url || item.imageUrl || "",
-        price: Number(row.list_price || item.price || 0),
-        vendor: row.vendor || item.vendor || null,
-      };
-    });
+      return list.map((item) => {
+        const id = Number(item.productId || item.id || 0);
+        const row = map.get(id);
+        if (!row) return item;
+        const catalog = Array.isArray(row.catalog_id) ? row.catalog_id[1] : row.catalog_id || item.catalog || "";
+        const currency = Array.isArray(row.currency_id) ? row.currency_id[1] : (row.currency_id || item.currency || "DOP");
+        return {
+          ...item,
+          name: row.name || item.name,
+          catalog,
+          imageUrl: row.image_url || item.imageUrl || "",
+          price: Number(row.list_price || item.price || 0),
+          currency: String(currency || "DOP").toUpperCase(),
+          vendor: row.vendor || item.vendor || null,
+        };
+      });
   }
 }
 
 export const checkoutService = new CheckoutItemRefresher(storeService);
-

@@ -71,15 +71,22 @@ export default function Reports() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!data.length) return;
     const date = new Date().toISOString().slice(0, 10);
-    printTablePdf({
+    await printTablePdf({
       filename: `reporte_${range}_${date}.pdf`,
-      title: "Reporte",
-      subtitle: `${rangeLabel(range)} · Ingresos ${fmtMoney(kpi.revenue)} · Pedidos ${kpi.orders}`,
+      title: "Reporte de Ventas",
+      subtitle: `Período: ${rangeLabel(range)} · ${date}`,
       columns: exportColumns,
       rows: data,
+      brandName: "Catalogix",
+      kpis: [
+        { label: "Ingresos totales",  value: fmtMoney(kpi.revenue)            },
+        { label: "Pedidos",           value: String(kpi.orders)               },
+        { label: "Ticket promedio",   value: fmtMoney(kpi.avgTicket)          },
+        { label: "Conversión",        value: `${Number(kpi.conversion || 0).toFixed(1)}%` },
+      ],
     });
   };
 

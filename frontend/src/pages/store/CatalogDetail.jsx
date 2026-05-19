@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { CartContext } from "../../context/CartContext";
 import { storeService } from "../../services/odoo/storeService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IconArrowLeft = () => (
@@ -136,6 +138,7 @@ const buildProductView = (row, idx) => {
     id: row.id,
     name: row.name || "Producto",
     price: Number(row.list_price || 0),
+    currency: Array.isArray(row.currency_id) ? row.currency_id[1] : "DOP",
     original: row.original_price ? Number(row.original_price) : null,
     category: (Array.isArray(row.categ_id) && row.categ_id[1]) || "General",
     stock,
@@ -214,9 +217,9 @@ function ProductCard({ product, onAdd, added, index, onOpen }) {
           <span className="prod-sales">· {product.sales} vendidos</span>
         </div>
         <div className="prod-price-row">
-          <span className="prod-price">RD${product.price.toLocaleString()}</span>
+          <span className="prod-price">{formatMoney(product.price, product.currency, { byCode })}</span>
           {product.original && (
-            <span className="prod-original">RD${product.original.toLocaleString()}</span>
+            <span className="prod-original">{formatMoney(product.original, product.currency, { byCode })}</span>
           )}
         </div>
         <div className="prod-stock" style={{ color: product.stock <= 5 ? "#ef4444" : "#94a3b8" }}>
@@ -246,6 +249,7 @@ export default function CatalogDetail() {
   const { cartCount = 0, addToCart } = useContext(CartContext) || {};
   const navigate = useNavigate();
   const { id } = useParams();
+  const { byCode } = useCurrency();
 
   const [catalog, setCatalog]       = useState(null);
   const [products, setProducts]     = useState([]);

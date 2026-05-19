@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import vendorProductService from "../../services/odoo/vendorProductService";
 import { vendorCatalogService } from "../../services/odoo/vendorCatalogService";
+import useCurrency from "../../hooks/useCurrency";
 import { toImageDataUrl } from "../../utils/imageDataUrl";
+import { formatMoney, symbolForCurrency } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IcoBack    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -27,7 +29,7 @@ const SIZES_PRE   = ["XS","S","M","L","XL","XXL","Único","28","30","32","34","3
 
 const EMPTY = {
   name:"", sku:"", description:"", category:"", catalog:"",
-  price:"", comparePrice:"", cost:"", currency:"RD$", unit:"unidad",
+  price:"", comparePrice:"", cost:"", currency:"DOP", unit:"unidad",
   stock:"", minStock:"5", weight:"",
   status:"draft", featured:false, taxable:true,
   images:[], tags:[],
@@ -38,7 +40,7 @@ const MOCK_EDIT = {
   name:"Vestido Floral Verano", sku:"VFV-001",
   description:"Hermoso vestido floral perfecto para el verano. Tela liviana y transpirable, ideal para el clima caribeño. Disponible en múltiples colores y tallas.",
   category:"Moda", catalog:"Nova Style",
-  price:"1850", comparePrice:"2200", cost:"750", currency:"RD$", unit:"unidad",
+  price:"1850", comparePrice:"2200", cost:"750", currency:"DOP", unit:"unidad",
   stock:"8", minStock:"5", weight:"0.3",
   status:"active", featured:true, taxable:true,
   images:[], tags:["verano","vestido","floral"],
@@ -49,6 +51,7 @@ const fromApiProduct = (product) => {
   if (!product) return { ...EMPTY };
   const categ = Array.isArray(product.categ_id) ? product.categ_id[1] : "";
   const catalog = Array.isArray(product.catalog_id) ? product.catalog_id[1] : "";
+  const currency = Array.isArray(product.currency_id) ? product.currency_id[1] : (product.currency_id || "DOP");
   const imagesBase64 = Array.isArray(product.images_base64) ? product.images_base64.slice(0, 4) : [];
   const images = imagesBase64.map(toImageDataUrl).filter(Boolean);
 
@@ -78,6 +81,7 @@ const fromApiProduct = (product) => {
     catalog: catalog || "",
     price: product.list_price != null ? String(product.list_price) : "",
     cost: product.standard_price != null ? String(product.standard_price) : "",
+    currency: String(currency || "DOP").toUpperCase(),
     stock: product.catalog_stock_qty != null
       ? String(product.catalog_stock_qty)
       : (product.qty_available != null ? String(product.qty_available) : ""),
@@ -156,6 +160,7 @@ export default function ProductForm() {
   const isEdit   = Boolean(id && id !== "new");
 
   const MAX_IMAGES = 4;
+  const { currencies, byCode, base } = useCurrency();
 
   const [ready,    setReady   ] = useState(false);
   const [form,     setForm    ] = useState(isEdit ? MOCK_EDIT : EMPTY);
@@ -173,6 +178,35 @@ export default function ProductForm() {
   const imageInputRef = useRef(null);
   const [dzActive, setDzActive] = useState(false);
   const dragCounterRef = useRef(0);
+
+  const currencyOptions = (currencies && currencies.length)
+    ? currencies
+    : [
+        { code: "DOP", symbol: "RD$", name: "Peso dominicano" },
+        { code: "USD", symbol: "$", name: "DÃ³lar estadounidense" },
+        { code: "EUR", symbol: "â‚¬", name: "Euro" },
+      ];
+  const currencySymbol = symbolForCurrency(form?.currency, byCode);
+  const baseCurrencyCode = String(base || "").trim().toUpperCase();
+
+  // If the form has a currency that isn't available from the API (e.g. default "DOP"
+  // while Odoo only has "USD" active), switch to a valid default to prevent save errors.
+  useEffect(() => {
+    if (isEdit) return;
+    const hasOptions = Array.isArray(currencyOptions) && currencyOptions.length > 0;
+    if (!hasOptions) return;
+
+    const current = String(form?.currency || "").trim().toUpperCase();
+    const isCurrentValid = !!(current && byCode && byCode[current]);
+    if (isCurrentValid) return;
+
+    const baseValid = !!(baseCurrencyCode && byCode && byCode[baseCurrencyCode]);
+    const fallback = baseValid
+      ? baseCurrencyCode
+      : String(currencyOptions[0]?.code || "").trim().toUpperCase();
+
+    if (fallback && fallback !== current) setForm((f) => ({ ...f, currency: fallback }));
+  }, [isEdit, byCode, baseCurrencyCode, currencyOptions, form?.currency]);
 
   useEffect(() => { setTimeout(() => setReady(true), 60); }, []);
 
@@ -436,6 +470,7 @@ export default function ProductForm() {
         catalog: form.catalog,
         price: form.price,
         cost: form.cost,
+        currency: form.currency,
         status,
         colors: form.colors,
         sizes: form.sizes,
@@ -822,7 +857,11 @@ export default function ProductForm() {
                 <div className="pf-g2">
                   <Field label="Moneda">
                     <Sel value={form.currency} onChange={e => set("currency", e.target.value)}>
-                      {["RD$","USD","EUR"].map(c => <option key={c}>{c}</option>)}
+                      {currencyOptions.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} ({c.symbol || c.code})
+                        </option>
+                      ))}
                     </Sel>
                   </Field>
                   <div/>
@@ -830,19 +869,19 @@ export default function ProductForm() {
                 <div className="pf-g3">
                   <Field label="Precio de venta" required error={errors.price}>
                     <div className="pf-pfx-wrap">
-                      <span className="pf-pfx">{form.currency}</span>
+                      <span className="pf-pfx">{currencySymbol}</span>
                       <Input type="number" min="0" placeholder="0.00" value={form.price} onChange={e => set("price", e.target.value)} error={errors.price} />
                     </div>
                   </Field>
                   <Field label="Precio anterior" hint="Se muestra tachado">
                     <div className="pf-pfx-wrap">
-                      <span className="pf-pfx">{form.currency}</span>
+                      <span className="pf-pfx">{currencySymbol}</span>
                       <Input type="number" min="0" placeholder="0.00" value={form.comparePrice} onChange={e => set("comparePrice", e.target.value)} />
                     </div>
                   </Field>
                   <Field label="Costo" hint="Solo visible para ti">
                     <div className="pf-pfx-wrap">
-                      <span className="pf-pfx">{form.currency}</span>
+                      <span className="pf-pfx">{currencySymbol}</span>
                       <Input type="number" min="0" placeholder="0.00" value={form.cost} onChange={e => set("cost", e.target.value)} />
                     </div>
                   </Field>
@@ -860,7 +899,7 @@ export default function ProductForm() {
                     {form.taxable && form.price && (
                       <div className="pf-price-row">
                         <span className="pf-price-lbl">ITBIS (18%)</span>
-                        <span className="pf-price-val">{form.currency}{(+form.price * 0.18).toLocaleString("es-DO",{minimumFractionDigits:2})}</span>
+                        <span className="pf-price-val">{formatMoney(+form.price * 0.18, form.currency, { minimumFractionDigits: 2, maximumFractionDigits: 2, byCode })}</span>
                       </div>
                     )}
                     {margin !== null && (
@@ -1055,7 +1094,7 @@ export default function ProductForm() {
                     <div className="pf-price-row">
                       <span className="pf-price-lbl">Precio anterior</span>
                       <span className="pf-price-val" style={{ textDecoration:"line-through", color:"var(--vs-400)" }}>
-                        {form.currency}{(+form.comparePrice).toLocaleString("es-DO")}
+                        {formatMoney(+form.comparePrice, form.currency, { maximumFractionDigits: 2, byCode })}
                       </span>
                     </div>
                   )}
@@ -1063,7 +1102,7 @@ export default function ProductForm() {
                     <div className="pf-price-row">
                       <span className="pf-price-lbl">Precio de venta</span>
                       <span className="pf-price-val" style={{ color:"var(--vt-600)", fontSize:14 }}>
-                        {form.currency}{(+form.price).toLocaleString("es-DO")}
+                        {formatMoney(+form.price, form.currency, { maximumFractionDigits: 2, byCode })}
                       </span>
                     </div>
                   )}

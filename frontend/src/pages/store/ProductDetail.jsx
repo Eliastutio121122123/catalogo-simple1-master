@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
 import { storeService } from "../../services/odoo/storeService";
 import { reviewService } from "../../services/odoo/reviewService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const I = {
@@ -72,6 +74,7 @@ const buildProductDetail = (row) => {
     verified: false,
     category,
     price: Number(row.list_price || 0),
+    currency: Array.isArray(row.currency_id) ? row.currency_id[1] : "DOP",
     original: row.original_price ? Number(row.original_price) : null,
     rating: Number(row.rating ?? 0),
     reviews: Number(row.reviews ?? 0),
@@ -112,6 +115,7 @@ export default function ProductDetail() {
   const { cartCount = 0, addToCart } = useContext(CartContext) || {};
   const navigate = useNavigate();
   const { id }   = useParams();
+  const { byCode } = useCurrency();
 
   const [product,  setProduct ] = useState(null);
   const [loading,  setLoading ] = useState(true);
@@ -337,8 +341,8 @@ export default function ProductDetail() {
             {/* Precio */}
             <div className="price-block">
               <div className="price-row">
-                <span className="price">RD${product.price.toLocaleString()}</span>
-                {product.original && <span className="original">RD${product.original.toLocaleString()}</span>}
+                <span className="price">{formatMoney(product.price, product.currency, { byCode })}</span>
+                {product.original && <span className="original">{formatMoney(product.original, product.currency, { byCode })}</span>}
                 {discount && <span className="disc-badge">-{discount}% OFF</span>}
               </div>
               <div className="itbis">ITBIS (18%) incluido</div>
@@ -571,7 +575,7 @@ export default function ProductDetail() {
                       <Stars r={r.rating}/>
                       <span className="rel-rn">{r.rating}</span>
                     </div>
-                    <div className="rel-price">RD${r.price.toLocaleString()}</div>
+                    <div className="rel-price">{formatMoney(r.price, r.currency || product.currency, { byCode })}</div>
                   </div>
                 </div>
               ))}

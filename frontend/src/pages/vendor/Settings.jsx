@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+ import { useEffect, useMemo, useState } from "react";
 import vendorProfileService from "../../services/odoo/vendorProfileService";
+import useCurrency from "../../hooks/useCurrency";
 
 const STORAGE_KEY = "catalogix_vendor_settings_v1";
 
@@ -32,6 +33,14 @@ export default function Settings() {
   const [form, setForm] = useState(DEFAULTS);
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState("");
+  const { currencies } = useCurrency();
+  const currencyOptions = (currencies && currencies.length)
+    ? currencies
+    : [
+        { code: "DOP", symbol: "RD$", name: "Peso dominicano" },
+        { code: "USD", symbol: "$", name: "DÃ³lar estadounidense" },
+        { code: "EUR", symbol: "â‚¬", name: "Euro" },
+      ];
 
   useEffect(() => {
     let cancelled = false;
@@ -156,9 +165,11 @@ export default function Settings() {
               <div className="vs-f">
                 <label className="vs-l">Moneda</label>
                 <select className="vs-i" value={form.currency} onChange={(e) => setField("currency", e.target.value)}>
-                  <option value="DOP">DOP (RD$)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
+                  {currencyOptions.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol || c.code})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="vs-f">

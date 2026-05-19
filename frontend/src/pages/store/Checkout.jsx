@@ -7,6 +7,8 @@ import { checkoutService } from "../../services/odoo/checkoutService";
 import { paymentService, paymentPayloadBuilder } from "../../services/odoo/paymentService";
 import { storeCouponService } from "../../services/odoo/storeCouponService";
 import { storePromotionService } from "../../services/odoo/storePromotionService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const Ico = {
@@ -155,6 +157,7 @@ function CardForm({ card, onChange, errors }) {
 export default function Checkout({ orderItems }) {
   const navigate = useNavigate();
   const { cartItems, cartId, clearCart } = useContext(CartContext) || {};
+  const { byCode } = useCurrency();
   const isAuthed = authService.isAuthenticated();
   const baseItems = useMemo(
     () => checkoutItemAdapter.toItems(orderItems || cartItems || []),
@@ -329,6 +332,11 @@ export default function Checkout({ orderItems }) {
   const couponDiscount = couponData ? Math.min(Number(couponData.discountAmount || 0), promoSubtotal) : 0;
   const total    = promoSubtotal - couponDiscount;
   const totalQty = items.reduce((s,i) => s + i.qty, 0);
+  const currenciesInCart = Array.from(
+    new Set(items.map((i) => String(i.currency || "DOP").toUpperCase()))
+  );
+  const mixedCurrency = currenciesInCart.length > 1;
+  const cartCurrency = mixedCurrency ? null : (currenciesInCart[0] || "DOP");
 
   const updDel  = (k,v) => { setDelivery(d=>({...d,[k]:v})); setErrors(e=>{const c={...e};delete c[k];return c;}); };
 
@@ -568,7 +576,7 @@ export default function Checkout({ orderItems }) {
                             <div className="rev-name">{item.name}</div>
                             <div className="rev-sub">{item.catalog} · x{item.qty}</div>
                           </div>
-                          <div className="rev-price">RD${(item.price*item.qty).toLocaleString()}</div>
+                          <div className="rev-price">{formatMoney(item.price * item.qty, item.currency, { byCode })}</div>
                         </div>
                       ))}
                     </div>
@@ -597,10 +605,18 @@ export default function Checkout({ orderItems }) {
                     </div>
                   </div>
                 )}
+                {mixedCurrency && (
+                  <div className="panel-body" style={{ paddingTop: 0 }}>
+                    <div className="err-box">
+                      <Ico.Alert />
+                      <span className="err-box-txt">Tu carrito tiene productos con distintas monedas. Completa la compra por separado.</span>
+                    </div>
+                  </div>
+                )}
                 <div className="panel-foot">
                   <button className="btn-prev" onClick={prevStep}><Ico.ArrowLeft /> Regresar</button>
-                  <button className="btn-next" onClick={handleSubmit} disabled={loading}>
-                    {loading ? <><span className="spin"/>Procesando…</> : <>Confirmar y pagar · RD${total.toLocaleString()}</>}
+                  <button className="btn-next" onClick={handleSubmit} disabled={loading || mixedCurrency}>
+                    {loading ? <><span className="spin"/>Procesando…</> : <>Confirmar y pagar · {mixedCurrency ? "—" : formatMoney(total, cartCurrency || "DOP", { byCode })}</>}
                   </button>
                 </div>
               </div>
@@ -666,17 +682,17 @@ export default function Checkout({ orderItems }) {
                     )}
                     <div className="summ-qty">x{item.qty}</div>
                   </div>
-                  <div className="summ-price">RD${(item.price*item.qty).toLocaleString()}</div>
+                  <div className="summ-price">{formatMoney(item.price * item.qty, item.currency, { byCode })}</div>
                 </div>
               ))}
             </div>
             <div className="summ-div" />
             <div className="summ-totals">
-              <div className="summ-line"><span className="summ-lbl">Subtotal</span><span className="summ-val">RD${Math.round(baseSubtotal).toLocaleString()}</span></div>
+              <div className="summ-line"><span className="summ-lbl">Subtotal</span><span className="summ-val">{mixedCurrency ? "—" : formatMoney(baseSubtotal, cartCurrency || "DOP", { maximumFractionDigits: 2, byCode })}</span></div>
               {promoDiscount > 0 && (
                 <div className="summ-line">
                   <span className="summ-lbl">Promociones</span>
-                  <span className="summ-val" style={{ color: "var(--green)", fontWeight: 800 }}>−RD${Math.round(promoDiscount).toLocaleString()}</span>
+                  <span className="summ-val" style={{ color: "var(--green)", fontWeight: 800 }}>{mixedCurrency ? "—" : `−${formatMoney(promoDiscount, cartCurrency || "DOP", { maximumFractionDigits: 2, byCode })}`}</span>
                 </div>
               )}
               {couponDiscount > 0 && (
@@ -684,13 +700,13 @@ export default function Checkout({ orderItems }) {
                   <span className="summ-lbl">
                     Descuento{couponData?.type === "percent" ? ` (${Number(couponData?.value || 0)}%)` : ""}
                   </span>
-                  <span className="summ-val" style={{ color: "var(--green)", fontWeight: 800 }}>−RD${Math.round(couponDiscount).toLocaleString()}</span>
+                  <span className="summ-val" style={{ color: "var(--green)", fontWeight: 800 }}>{mixedCurrency ? "—" : `−${formatMoney(couponDiscount, cartCurrency || "DOP", { maximumFractionDigits: 2, byCode })}`}</span>
                 </div>
               )}
               <div className="summ-line"><span className="summ-lbl">Envío</span><span className="summ-val" style={{color:"var(--green)"}}>Gratis</span></div>
               <div className="summ-total">
                 <span className="summ-total-lbl">Total</span>
-                <span className="summ-total-val">RD${total.toLocaleString()}</span>
+                <span className="summ-total-val">{mixedCurrency ? "—" : formatMoney(total, cartCurrency || "DOP", { maximumFractionDigits: 2, byCode })}</span>
               </div>
               <p style={{fontSize:11,color:"var(--s4)",textAlign:"right",marginTop:4}}>ITBIS (18%) incluido</p>
             </div>

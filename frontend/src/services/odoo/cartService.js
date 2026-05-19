@@ -53,6 +53,7 @@ class CartHydrator {
       if (!row) return item;
       const catalog = Array.isArray(row.catalog_id) ? row.catalog_id[1] : row.catalog_id || "";
       const category = Array.isArray(row.categ_id) ? row.categ_id[1] : "General";
+      const currency = Array.isArray(row.currency_id) ? row.currency_id[1] : (row.currency_id || item.currency || "DOP");
       return {
         ...item,
         name: row.name || item.name,
@@ -60,6 +61,7 @@ class CartHydrator {
         category,
         imageUrl: row.image_url || item.imageUrl || "",
         price: Number(row.list_price || item.price || 0),
+        currency: String(currency || "DOP").toUpperCase(),
         vendor: row.vendor || item.vendor || null,
       };
     });

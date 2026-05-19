@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../services/odoo/odooClient";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 const LogoCatalogix = ({ size = 32 }) => (
   <svg width={size} height={size} viewBox="0 0 120 120" fill="none">
@@ -31,10 +33,8 @@ function formatDate(raw) {
   } catch { return String(raw).slice(0, 10); }
 }
 
-function formatCurrency(value, currency = "DOP") {
-  const n = Number(value) || 0;
-  const symbol = currency === "USD" ? "US$" : "RD$";
-  return `${symbol}${n.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatCurrency(value, currency = "DOP", byCode = null) {
+  return formatMoney(Number(value) || 0, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2, byCode });
 }
 
 function buildTimeline(orderState) {
@@ -166,6 +166,7 @@ function ErrorState({ message, onRetry, onHome }) {
 
 export default function OrderConfirmation() {
   const navigate = useNavigate();
+  const { byCode } = useCurrency();
   const [params] = useSearchParams();
   const orderParam = params.get("order") || "";
 
@@ -228,6 +229,7 @@ export default function OrderConfirmation() {
   const orderDate   = formatDate(order.date_order);
   const orderState  = order.state || "sale";
   const lines       = order.lines || [];
+  const currency    = order.currency || (Array.isArray(order.currency_id) ? order.currency_id[1] : "DOP");
   const timeline    = buildTimeline(orderState);
   const partner     = order.partner_id || [];
   const partnerName = Array.isArray(partner) && partner.length > 1 ? partner[1] : "Cliente";
@@ -303,7 +305,7 @@ export default function OrderConfirmation() {
             <div className="card">
               <div className="card-head">
                 <span className="card-title">Productos ({Math.round(totalQty)})</span>
-                <span style={{fontSize:13,fontWeight:800,color:"var(--s9)"}}>{formatCurrency(subtotal)}</span>
+              <span style={{fontSize:13,fontWeight:800,color:"var(--s9)"}}>{formatCurrency(subtotal, currency, byCode)}</span>
               </div>
               <div className="card-body">
                 <div className="oi-list">
@@ -323,9 +325,9 @@ export default function OrderConfirmation() {
                         </div>
                         <div className="oi-info">
                           <div className="oi-name">{name}</div>
-                          <div className="oi-sub">x{Math.round(qty)} · {formatCurrency(Number(item.price_unit) || 0)}/ud</div>
+                      <div className="oi-sub">x{Math.round(qty)} · {formatCurrency(Number(item.price_unit) || 0, currency, byCode)}/ud</div>
                         </div>
-                        <div className="oi-price">{formatCurrency(priceSub)}</div>
+                      <div className="oi-price">{formatCurrency(priceSub, currency, byCode)}</div>
                       </div>
                     );
                   })}
@@ -346,7 +348,7 @@ export default function OrderConfirmation() {
                   {ico:<IcoMap/>,      lbl:"Cliente",    val: partnerName},
                   {ico:<IcoMail/>,     lbl:"Fecha",      val: orderDate},
                   {ico:<span>📋</span>,lbl:"Estado",     val: orderState === "sale" ? "Confirmado" : orderState === "done" ? "Completado" : orderState === "draft" ? "Borrador" : orderState},
-                  {ico:<span>💳</span>,lbl:"Total",      val: formatCurrency(total)},
+            {ico:<span>💳</span>,lbl:"Total",      val: formatCurrency(total, currency, byCode)},
                 ].map(r=>(
                   <div className="irow" key={r.lbl}>
                     <div className="irow-ico">{r.ico}</div>
@@ -362,12 +364,12 @@ export default function OrderConfirmation() {
             <div className="sc-head">Resumen del pago</div>
             <div className="sc-body">
               <div className="status-pill"><div className="status-dot"/><span className="status-txt">Pago confirmado</span></div>
-              <div className="sc-line"><span className="sc-lbl">Subtotal ({Math.round(totalQty)} artículos)</span><span className="sc-val">{formatCurrency(subtotal)}</span></div>
+              <div className="sc-line"><span className="sc-lbl">Subtotal ({Math.round(totalQty)} artículos)</span><span className="sc-val">{formatCurrency(subtotal, currency, byCode)}</span></div>
               {total > subtotal && (
-                <div className="sc-line"><span className="sc-lbl">Impuestos</span><span className="sc-val">{formatCurrency(total - subtotal)}</span></div>
+              <div className="sc-line"><span className="sc-lbl">Impuestos</span><span className="sc-val">{formatCurrency(total - subtotal, currency, byCode)}</span></div>
               )}
               <div className="sc-line"><span className="sc-lbl">Envío</span><span className="sc-val" style={{color:"var(--green)"}}>Gratis</span></div>
-              <div className="sc-total"><span className="sc-tl">Total cobrado</span><span className="sc-tv">{formatCurrency(total)}</span></div>
+              <div className="sc-total"><span className="sc-tl">Total cobrado</span><span className="sc-tv">{formatCurrency(total, currency, byCode)}</span></div>
             </div>
             <div className="sc-foot">
               <button className="btn-p" onClick={()=>navigate("/catalogs")}><IcoShop/>Seguir comprando</button>

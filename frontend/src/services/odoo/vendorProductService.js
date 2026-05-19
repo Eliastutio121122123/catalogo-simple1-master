@@ -10,6 +10,7 @@ function asText(value, fallback = "") {
 function normalize(product) {
   if (!product) return null;
   const price = Number(product.list_price || 0);
+  const currency = Array.isArray(product.currency_id) ? product.currency_id[1] : (product.currency_id || "DOP");
   const stock = product.catalog_stock_qty != null
     ? Number(product.catalog_stock_qty || 0)
     : Number(product.qty_available || 0);
@@ -27,6 +28,7 @@ function normalize(product) {
     catalog,
     category,
     price,
+    currency: String(currency || "DOP").toUpperCase(),
     stock,
     sold: Number(product.sold || 0),
     status,

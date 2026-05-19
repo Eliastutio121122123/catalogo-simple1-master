@@ -6,6 +6,10 @@ class CatalogPricingSetting(models.Model):
     _description = "Catalog Pricing Settings"
     _order = "id desc"
 
+    def _selection_currency(self):
+        rows = self.env["res.currency"].search([("active", "=", True)], order="name asc")
+        return [(c.name, c.name) for c in rows]
+
     partner_id = fields.Many2one(
         "res.partner",
         string="Partner",
@@ -14,7 +18,7 @@ class CatalogPricingSetting(models.Model):
         index=True,
     )
     currency = fields.Selection(
-        [("DOP", "DOP"), ("USD", "USD"), ("EUR", "EUR")],
+        selection=_selection_currency,
         default="DOP",
         required=True,
     )

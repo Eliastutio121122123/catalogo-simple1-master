@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import vendorProductService from "../../services/odoo/vendorProductService";
+import useCurrency from "../../hooks/useCurrency";
 import { toImageDataUrl } from "../../utils/imageDataUrl";
+import { formatMoney } from "../../utils/formatCurrency";
 
 class VendorProductDetailAdapter {
   toView(product) {
@@ -18,6 +20,7 @@ class VendorProductDetailAdapter {
     });
     const catalog = Array.isArray(product.catalog_id) ? product.catalog_id[1] : product.catalog_id || "Sin catalogo";
     const category = Array.isArray(product.categ_id) ? product.categ_id[1] : product.categ_id || "Sin categoria";
+    const currency = Array.isArray(product.currency_id) ? product.currency_id[1] : (product.currency_id || "DOP");
     const status = product.active === false ? "inactive" : "active";
     const stock =
       product.catalog_stock_qty != null
@@ -31,6 +34,7 @@ class VendorProductDetailAdapter {
       category,
       price: Number(product.list_price || 0),
       cost: Number(product.standard_price || 0),
+      currency: String(currency || "DOP").toUpperCase(),
       stock,
       status,
       description: product.description_sale || product.description || "",
@@ -45,6 +49,7 @@ const adapter = new VendorProductDetailAdapter();
 export default function VendorProductDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { byCode } = useCurrency();
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -166,9 +171,9 @@ export default function VendorProductDetail() {
                 <span className="vpd-pill active">{row.category}</span>
               </div>
               <div className="vpd-kv">
-                <div className="vpd-k"><span>Precio</span><strong>RD${row.price.toLocaleString("es-DO")}</strong></div>
+                <div className="vpd-k"><span>Precio</span><strong>{formatMoney(row.price, row.currency, { maximumFractionDigits: 2, byCode })}</strong></div>
                 <div className="vpd-k"><span>Stock</span><strong>{row.stock}</strong></div>
-                <div className="vpd-k"><span>Costo</span><strong>RD${row.cost.toLocaleString("es-DO")}</strong></div>
+                <div className="vpd-k"><span>Costo</span><strong>{formatMoney(row.cost, row.currency, { maximumFractionDigits: 2, byCode })}</strong></div>
                 <div className="vpd-k"><span>ID</span><strong>{row.id}</strong></div>
               </div>
               <div className="vpd-desc">{row.description || "Sin descripciÃ³n disponible."}</div>

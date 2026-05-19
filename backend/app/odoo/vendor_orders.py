@@ -21,6 +21,7 @@ class VendorOrderService:
         "amount_total", "client_order_ref",
         "partner_id",
         "date_order",
+        "currency_id",
     ]
     LINE_FIELDS = [
         "id",
@@ -139,6 +140,9 @@ class VendorOrderService:
                     "items": items,
                     "customer": customer,
                     "product": prod_name,
+                    "currency": (order.get("currency_id") or [None, "DOP"])[1]
+                    if isinstance(order.get("currency_id"), list)
+                    else "DOP",
                 }
             )
 
@@ -187,6 +191,9 @@ class VendorOrderService:
             "date": order.get("date_order"),
             "total": float(order.get("amount_total") or 0),
             "subtotal": subtotal,
+            "currency": (order.get("currency_id") or [None, "DOP"])[1]
+            if isinstance(order.get("currency_id"), list)
+            else "DOP",
             "customer": {
                 "name": partner_row.get("name") or (partner[1] if isinstance(partner, list) and len(partner) > 1 else ""),
                 "email": partner_row.get("email") or "",

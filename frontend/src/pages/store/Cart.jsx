@@ -2,6 +2,8 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
 import { storeCouponService } from "../../services/odoo/storeCouponService";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 const IconX = () => (
@@ -140,8 +142,8 @@ function CartItem({ item, onQtyChange, onRemove }) {
         <h4 className="ci-name">{item.name}</h4>
         <div className="ci-cat-tag">{item.category}</div>
         <div className="ci-price-row">
-          <span className="ci-price">RD${(item.price * item.qty).toLocaleString()}</span>
-          <span className="ci-unit">RD${item.price.toLocaleString()} c/u</span>
+          <span className="ci-price">{formatMoney(item.price * item.qty, item.currency, { byCode })}</span>
+          <span className="ci-unit">{formatMoney(item.price, item.currency, { byCode })} c/u</span>
         </div>
       </div>
       <div className="ci-right">
@@ -160,6 +162,7 @@ function CartItem({ item, onQtyChange, onRemove }) {
 export default function Cart() {
   const { cartItems, updateQty, removeFromCart } = useContext(CartContext) || {};
   const navigate = useNavigate();
+  const { byCode } = useCurrency();
   const items = useMemo(() => cartViewAdapter.toViewItems(cartItems || []), [cartItems]);
   const [coupon, setCoupon]           = useState("");
   const [couponInput, setCouponInput] = useState("");
@@ -167,11 +170,18 @@ export default function Cart() {
   const [couponData, setCouponData]   = useState(null);
   const [shipping, setShipping]       = useState("standard");
 
+  const currenciesInCart = useMemo(() => {
+    const set = new Set();
+    for (const i of items) set.add(String(i.currency || "DOP").toUpperCase());
+    return Array.from(set);
+  }, [items]);
+  const mixedCurrency = currenciesInCart.length > 1;
+  const cartCurrency = mixedCurrency ? null : (currenciesInCart[0] || "DOP");
 
-  const subtotal   = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const discount   = couponData ? Math.min(Number(couponData.discountAmount || 0), subtotal) : 0;
-  const shipPrice  = SHIPPING_METHODS.find(s => s.id === shipping)?.price ?? 0;
-  const total      = subtotal - discount + shipPrice;
+  const subtotal   = mixedCurrency ? 0 : items.reduce((s, i) => s + i.price * i.qty, 0);
+  const discount   = mixedCurrency ? 0 : (couponData ? Math.min(Number(couponData.discountAmount || 0), subtotal) : 0);
+  const shipPrice  = mixedCurrency ? 0 : (SHIPPING_METHODS.find(s => s.id === shipping)?.price ?? 0);
+  const total      = mixedCurrency ? 0 : (subtotal - discount + shipPrice);
   const totalItems = items.reduce((s, i) => s + i.qty, 0);
 
   const handleQty = (id, qty) => {
@@ -184,9 +194,9 @@ export default function Cart() {
     if (!couponData) return "";
     const desc = String(couponData.description || "").trim();
     if (desc) return desc;
-    if (couponData.type === "fixed") return `RD$${Number(couponData.value || 0).toLocaleString("es-DO")} de descuento`;
+    if (couponData.type === "fixed") return `${formatMoney(Number(couponData.value || 0), cartCurrency || "DOP", { byCode })} de descuento`;
     return `${Number(couponData.value || 0)}% de descuento`;
-  }, [couponData]);
+  }, [couponData, cartCurrency]);
 
   const buildLines = (srcItems) =>
     (srcItems || [])
@@ -205,6 +215,10 @@ export default function Cart() {
     }
     if (!items.length) {
       setCouponError("Tu carrito está vacío");
+      return;
+    }
+    if (mixedCurrency) {
+      setCouponError("Tu carrito tiene productos con distintas monedas. Completa la compra por separado.");
       return;
     }
     try {
@@ -302,7 +316,7 @@ export default function Cart() {
                         <div className="ship-time">{m.time}</div>
                       </div>
                       <div className="ship-price">
-                        {m.price === 0 ? <span style={{ color: "#22c55e", fontWeight: 800 }}>Gratis</span> : `RD$${m.price}`}
+                        {m.price === 0 ? <span style={{ color: "#22c55e", fontWeight: 800 }}>Gratis</span> : (mixedCurrency ? "—" : formatMoney(m.price, cartCurrency || "DOP", { byCode }))}
                       </div>
                     </div>
                   ))}
@@ -346,36 +360,41 @@ export default function Cart() {
                 </div>
 
                 <div className="summary-divider" />
+                {mixedCurrency && (
+                  <p className="itbis-note" style={{ color: "#ef4444" }}>
+                    Tu carrito contiene productos con distintas monedas. Completa la compra por separado.
+                  </p>
+                )}
 
                 {/* Líneas */}
                 <div className="summary-line">
                   <span className="summary-line-label">Subtotal ({totalItems} artículos)</span>
-                  <span className="summary-line-val">RD${subtotal.toLocaleString()}</span>
+                  <span className="summary-line-val">{mixedCurrency ? "—" : formatMoney(subtotal, cartCurrency || "DOP", { byCode })}</span>
                 </div>
                 {discount > 0 && (
                   <div className="summary-line discount">
                     <span className="summary-line-label">
                       Descuento{couponData?.type === "percent" ? ` (${Number(couponData?.value || 0)}%)` : ""}
                     </span>
-                    <span className="summary-line-val">−RD${discount.toLocaleString()}</span>
+                    <span className="summary-line-val">{mixedCurrency ? "—" : `−${formatMoney(discount, cartCurrency || "DOP", { byCode })}`}</span>
                   </div>
                 )}
                 <div className="summary-line shipping">
                   <span className="summary-line-label">Envío</span>
                   <span className="summary-line-val">
-                    {shipPrice === 0 ? "Gratis" : `RD$${shipPrice}`}
+                    {mixedCurrency ? "—" : (shipPrice === 0 ? "Gratis" : formatMoney(shipPrice, cartCurrency || "DOP", { byCode }))}
                   </span>
                 </div>
 
                 <div className="summary-total">
                   <span className="summary-total-label">Total</span>
-                  <span className="summary-total-val">RD${total.toLocaleString()}</span>
+                  <span className="summary-total-val">{mixedCurrency ? "—" : formatMoney(total, cartCurrency || "DOP", { byCode })}</span>
                 </div>
                 <p className="itbis-note">ITBIS (18%) incluido</p>
 
                 <button
                   className="checkout-btn"
-                  disabled={items.length === 0}
+                  disabled={items.length === 0 || mixedCurrency}
                   onClick={() => navigate("/checkout")}
                 >
                   <IconCreditCard />

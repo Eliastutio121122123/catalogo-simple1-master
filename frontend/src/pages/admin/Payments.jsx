@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../../services/odoo/odooClient";
+import useCurrency from "../../hooks/useCurrency";
+import { formatMoney } from "../../utils/formatCurrency";
 
 const STATUS = ["all", "approved", "pending", "review", "chargeback"];
 const METHODS = ["all", "Card", "Transfer", "Cash", "Paypal", "Manual"];
@@ -20,12 +22,8 @@ const statusClass = (s) => {
   return "badge muted";
 };
 
-const fmtMoney = (n, currency = "DOP") =>
-  new Intl.NumberFormat("es-DO", {
-    style: "currency",
-    currency: currency === "USD" ? "USD" : "DOP",
-    maximumFractionDigits: 2,
-  }).format(n || 0);
+const fmtMoney = (n, currency, byCode, base) =>
+  formatMoney(Number(n || 0), currency || base || "DOP", { maximumFractionDigits: 2, byCode });
 
 const fmtDate = (raw) => {
   if (!raw) return "—";
@@ -44,6 +42,7 @@ const fmtDate = (raw) => {
 };
 
 export default function Payments() {
+  const { byCode, base } = useCurrency();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [method, setMethod] = useState("all");
@@ -237,7 +236,7 @@ export default function Payments() {
                 </div>
                 <div className="pay-subtxt">{row.order || "—"}</div>
                 <div className="pay-subtxt">{row.customer || "—"}</div>
-                <div className="pay-ttl">{fmtMoney(row.amount, row.currency)}</div>
+                <div className="pay-ttl">{fmtMoney(row.amount, row.currency, byCode, base)}</div>
                 <div>
                   <span className={statusClass(row.status)}>{statusLabel(row.status)}</span>
                 </div>

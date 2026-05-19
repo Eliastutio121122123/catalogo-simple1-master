@@ -5,6 +5,7 @@ using vendor-scoped keys like 'catalogix.vendor.{uid}.currency'.
 from __future__ import annotations
 
 from .client import odoo
+from .currencies import normalize_currency_code
 
 _BOOL_FIELDS = {"email_orders", "email_invoices", "email_promotions", "two_factor"}
 _INT_FIELDS  = {"low_stock_threshold"}
@@ -66,6 +67,8 @@ def update_vendor_settings(uid: int, data: dict) -> dict:
             continue
         param_key = _vendor_key(uid, field)
         value = data[field]
+        if field == "currency":
+            value = normalize_currency_code(str(value or _DEFAULTS["currency"]))
         if isinstance(value, bool):
             value = "true" if value else "false"
         value = str(value)

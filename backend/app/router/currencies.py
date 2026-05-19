@@ -4,13 +4,14 @@ from flask import Blueprint, request
 from flask.views import MethodView
 
 from ..odoo.admin_settings import get_settings
+from ..odoo.currencies import get_currency, list_currencies
 from ..utils.fx_rates import FXRatesError, fx_rates
 from ..utils.response import error, success
 
 bp = Blueprint("currencies", __name__)
 
 
-# Small built-in metadata set. (We can extend later or read from Odoo if you prefer.)
+# Small built-in metadata set used as fallback if Odoo is unavailable.
 CURRENCY_META: dict[str, dict] = {
     "DOP": {"code": "DOP", "symbol": "RD$", "name": "Peso dominicano", "decimals": 2},
     "USD": {"code": "USD", "symbol": "$", "name": "Dolar estadounidense", "decimals": 2},
@@ -25,7 +26,21 @@ def _default_base_currency() -> str:
     try:
         settings = get_settings() or {}
         base = str(settings.get("currency") or "DOP").strip().upper()
-        return base if base else "DOP"
+        base = base if base else "DOP"
+        # If the configured base is not available in Odoo, fall back to any active currency
+        # to avoid offering a "phantom" base currency that will later fail validation.
+        try:
+            if get_currency(base):
+                return base
+            available = list_currencies(limit=1)
+            if available:
+                code = str(available[0].get("code") or "").strip().upper()
+                if code:
+                    return code
+        except Exception:
+            # If Odoo is unavailable, keep the configured base (UI will use fallback metadata).
+            return base
+        return base
     except Exception:
         return "DOP"
 
@@ -40,20 +55,34 @@ def _normalize_code(code: str) -> str:
 class CurrenciesListAPI(MethodView):
     def get(self):
         base = request.args.get("base") or _default_base_currency()
+        q = (request.args.get("q") or "").strip()
+        try:
+            limit = int(request.args.get("limit") or 250)
+        except Exception:
+            limit = 250
         try:
             base = _normalize_code(base)
         except ValueError as exc:
             return error(str(exc), 400)
 
-        # Always include base in list so UI can render it.
-        codes = list(CURRENCY_META.keys())
-        if base not in codes:
-            codes = [base] + codes
+        odoo_ok = True
+        try:
+            currencies = list_currencies(q=q or None, limit=limit)
+        except Exception:
+            currencies = list(CURRENCY_META.values())
+            odoo_ok = False
 
-        currencies = []
-        for code in codes:
-            meta = CURRENCY_META.get(code) or {"code": code, "symbol": code, "name": code, "decimals": 2}
-            currencies.append(meta)
+        # Ensure base is present in the response so the UI can render it.
+        # - If Odoo is available, we include base only when it exists in Odoo (safe for writes).
+        # - If Odoo is unavailable, we fall back to built-in metadata.
+        if base and not any(c.get("code") == base for c in currencies):
+            if odoo_ok:
+                meta = get_currency(base)
+                if meta:
+                    currencies = [meta] + currencies
+            else:
+                meta = CURRENCY_META.get(base) or {"code": base, "symbol": base, "name": base, "decimals": 2}
+                currencies = [meta] + currencies
 
         return success({"base": base, "currencies": currencies})
 
@@ -77,7 +106,11 @@ class CurrenciesRatesAPI(MethodView):
                 except ValueError:
                     continue
         else:
-            requested = list(CURRENCY_META.keys())
+            try:
+                requested = [c.get("code") for c in list_currencies(limit=25)]
+                requested = [c for c in requested if c]
+            except Exception:
+                requested = list(CURRENCY_META.keys())
 
         # Ensure base is not returned as a "rate" unless asked.
         requested = [c for c in requested if c != base]
